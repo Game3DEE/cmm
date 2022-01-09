@@ -1,0 +1,30 @@
+{
+  "name": "@game3dee/view3dn",
+  "version": "1.0.0",
+  "description": "Carnivores Tools",
+  "main": "src/view3dn.js",
+  "scripts": {
+    "start": "webpack serve",
+    "build": "webpack -p",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/game3dee/view3dn.git"
+  },
+  "keywords": [],
+  "author": "Ithamar R. Adema <ithamar@game3dee.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/game3dee/view3dn/issues"
+  },
+  "homepage": "https://gitlab.com/game3dee/view3dn#readme",
+  "dependencies": {
+    "three": "^0.136.0"
+  },
+  "devDependencies": {
+    "webpack": "^5.65.0",
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.7.2"
+  }
+}

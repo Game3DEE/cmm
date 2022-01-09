@@ -31,7 +31,7 @@ export function loadMAP(buffer) {
         tex1Map = new Uint8ClampedArray(mapSize)
         for (let i = 0; i < mapSize; i++) {
             let t = dv.getUint16(offset, true)
-            tex1Map = (t > 0xff) ? 0 : t
+            tex1Map[i] = (t > 0xff) ? 0 : t
             offset += 2
         }
     }
@@ -43,7 +43,7 @@ export function loadMAP(buffer) {
         tex1Map = new Uint8ClampedArray(mapSize)
         for (let i = 0; i < mapSize; i++) {
             let t = dv.getUint16(offset, true)
-            tex1Map = (t > 0xff) ? 0 : t
+            tex1Map[i] = (t > 0xff) ? 0 : t
             offset += 2
         }
     }
