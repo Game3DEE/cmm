@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Carnivores Model Viewer</title>
+    <style>
+      body {
+          margin: 0;
+          font-family: monospace;
+          width: 100%;
+          background: #333333;
+          color: #fff;
+      }
+      #b {
+        position: absolute;
+        top: 10px;
+        width: 100%;
+        text-align: center;
+        z-index: 2;
+      }
+      
+      a:visited {
+        color: green;
+      }
+
+      #openfile {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+      }
+
+      #info {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div id="b">
+      <a href="http://game3dee.com/view3dn/">Carnivores Model viewer</a> - Game3DEE<br/>
+      Drop 3DF, CAR, VTL, or 3DN, ANI files on the page for viewing.<br/>TGA textures are also supported.
+    </div>
+    <div id="info">
+      <p>Model: <span id="modelName"></span></p>
+      <p>Vertices: <span id="vertCount"></span></p>
+      <p>Faces: <span id="faceCount"></span></p>
+    </div>
+    <input type="file"
+      id="openfile"
+      name="input"
+      accept=".3df,.car,.vtl,.3dn,.ani,.obj,.tga,.crt,.rst,.map,.man"
+    >
+    <!-- accept="image/png, image/jpeg" -->
+</body>
+  </script>
+  <script type="module" src="view3dn.js"></script>
+</html>
