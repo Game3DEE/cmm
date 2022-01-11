@@ -59,11 +59,12 @@ export function load3DF(buffer, offset = 0) {
 
 export function save3DF(model) {
     const textureLength = model.texture ? model.texture.length * 2 : 0
+    const boneCount = model.bones?.length || 0
     const byteSize =
         16 + // header
         model.faces.length * 64 +
         model.vertices.length * 16 +
-        (model.bones?.length || 0) * 48 +
+        boneCount * 48 +
         textureLength
 
     const buffer = new ArrayBuffer(byteSize)
@@ -72,7 +73,7 @@ export function save3DF(model) {
     // Write header
     dv.setUint32(0, model.vertices.length, true)
     dv.setUint32(4, model.faces.length, true)
-    dv.setUint32(8, model.bones.length, true)
+    dv.setUint32(8, boneCount, true)
     dv.setUint32(12, textureLength, true)
     let offset = 16
 
