@@ -1,3 +1,9 @@
+# Carnivores Online
+
+Online implementation of Carnivores, supporting multiplayer.
+
+## TODO
+
 * setNewTargetPlace bugged (sometimes gets stuck in endless retries)
 * Use bitecs to seperate game logic from renderer:
     - render system:
@@ -18,3 +24,8 @@
     - Use instancing or use seperate objects with LOD for billboard
     - detail map for terrain?
 * Investigate grass shader from mobile app
+
+## Multiplayer issues / ideas
+
+* ReplaceCharacterForward does not work in multiplayer
+* Play as *either* a hunter or a dino
