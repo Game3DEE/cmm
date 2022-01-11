@@ -294,6 +294,11 @@ function addAnimation(name, ani, check = false) {
             mixer.stopAllAction()
             mixer.clipAction(obj.animations.find(a => a.name === name)).play()
         },
+        remove: () => {
+            mixer.stopAllAction()
+            animations = animations.filter(ani => ani.name !== name)
+            aniFolder.destroy()
+        },
         exportToVTL: () => {
             const buf = saveVTL(ani)
             downloadBlob(buf, `${name}.vtl`, 'application/octet-stream')
@@ -304,6 +309,7 @@ function addAnimation(name, ani, check = false) {
         },
     }
     aniFolder.add(ctx, 'play')
+    aniFolder.add(ctx, 'remove')
     aniFolder.add(ctx, 'exportToVTL')
     aniFolder.add(ctx, 'exportToANI')
 }
