@@ -16,14 +16,11 @@ import { load3DN, save3DN } from './formats/3dn.js'
 import { loadANI, saveANI } from './formats/ani.js'
 import { loadCRT          } from './formats/crt.js'
 import { loadRST          } from './formats/rst.js'
-import { loadMAN          } from './formats/man.js'
 
 // Carnivores PC formats
 import { load3DF, save3DF } from './formats/3df.js'
 import { loadCAR, saveCAR } from './formats/car.js'
 import { loadVTL, saveVTL } from './formats/vtl.js'
-import { loadMAP          } from './formats/map.js'
-import { loadRSC          } from './formats/rsc.js'
 
 import { downloadBlob } from './utils.js'
 
@@ -68,12 +65,6 @@ function openFile(file) {
                 addAnimation(baseName, loadVTL(buf), true)
                 model && setModel(model.name, model) // regenerate geometry with new morph data
                 break
-            case 'map':
-                setMap(loadMAP(buf))
-                break
-            case 'rsc':
-                setRsc(loadRSC(buf))
-                break
 
             // ---- Mobile formats
             case '3dn':
@@ -91,9 +82,6 @@ function openFile(file) {
                 break
             case 'rst':
                 loadRST(buf)
-                break
-            case 'man':
-                setMap(loadMAN(buf))
                 break
 
             // ---- Common formats
@@ -493,161 +481,3 @@ Promise.all([
 
     requestAnimationFrame(render)
 })
-
-let currMap, currRsc;
-const terrainTexSize = 128
-
-function createTextureAtlas(rsc) {
-    // Calculate W/H of atlas (we make a square texture atlas)
-    const textureDim = Math.ceil(Math.sqrt(rsc.textureCount));
-    const textureStride = textureDim * terrainTexSize * 3; // bytes used per single pixel row
-
-    // Allocate storage for texture atlas
-    const data = new Uint8Array(textureDim * textureStride * terrainTexSize)
-
-    // Now go over all textures...
-    for (let i = 0; i < rsc.textureCount; i++) {
-        // Determine where in the atlas grid this texture should go
-        let top = Math.floor(i / textureDim)
-        let left = Math.floor(i % textureDim)
-        // ... and the actual byte offset in our data
-        let offset = (top * textureStride * terrainTexSize) + (left * terrainTexSize * 3);
-        // Now go over the texture and decode the 16 bit texture into our 24 bit one
-        const texOff = i * terrainTexSize * terrainTexSize
-        for (let y = 0; y < terrainTexSize; y++) {
-            for (let x = 0; x < terrainTexSize; x++) {
-                let pixel = rsc.textures[texOff + y * terrainTexSize + x]
-                data[offset++] = ((pixel >> 10) & 0x1f) << 3;
-                data[offset++] = ((pixel >> 5) & 0x1f) << 3;
-                data[offset++] = ((pixel >> 0) & 0x1f) << 3;
-            }
-            offset -= terrainTexSize * 3;
-            offset += textureStride;
-        }
-    }
-    // Done! Now simply create a ThreeJS texture from the data
-    const texSize = textureDim * terrainTexSize;
-    console.log(rsc, texSize, textureDim, data.byteLength)
-    const tex = new THREE.DataTexture(data, texSize, texSize, THREE.RGBFormat, THREE.UnsignedByteType);
-    tex.needsUpdate = true;
-
-    return tex;
-}
-// Set up the UVs for our texture atlas based on the texture map
-function setMapUV(geometry, map, tex) {
-    // Get number of textures per row in our atlas
-    const textureDim = tex.image.width / terrainTexSize;
-    // size of one texture in our map in UV coordinates (they are 0...1)
-    const uvStep = 1 / textureDim;
-    const uv = geometry.attributes.uv;
-    let uvidx = 0;
-    let revCount = 0
-    // Loop through the entire map
-    for (let y = 0; y < map.size - 1; y++) {
-        for (let x = 0; x < map.size - 1; x++) {
-            // Get the texture number
-            const tidx = map.tex1Map[map.size * y + x];
-            // get the rotation of the texture
-            const rot = map.flags1[map.size * y + x] & 3;
-            const rev = (map.flags1[map.size * y + x] & 0x10) != 0
-            // calculate position of texture from atlas in UV coords
-            let ty = Math.floor(tidx / textureDim) * uvStep;
-            let tx = Math.floor(tidx % textureDim) * uvStep;
-            if (rev) {
-                revCount++
-            }
-            // Four positions in uvmap to use
-            const coords = [
-                [tx, ty],
-                [tx, ty + uvStep],
-                [tx + uvStep, ty], // first triangle UV
-                [tx + uvStep, ty + uvStep],
-            ];
-            // map coordinates to all 6 vertices used for this grid square
-            let a = 0, b = 1, c = 2, d = 1, e = 3, f = 2;
-            // ... and take rotation into account
-            switch (rot) {
-                case 0: break; // default no rotation
-                case 1: // 90deg
-                    a = 1; b = d = 3; c = f = 0; e = 2;
-                    break;
-                case 2: // 180deg
-                    a = 3; b = d = 2; c = f = 1; e = 0;
-                    break;
-                case 3: // 270deg
-                    a = 2; b = d = 0; c = f = 3; e = 1;
-                    break;
-            }
-            // Okay, now simply set the UV for those 6 vertices
-            uv.setX(uvidx + 0, coords[a][0]);
-            uv.setY(uvidx + 0, coords[a][1]);
-            uv.setX(uvidx + 1, coords[b][0]);
-            uv.setY(uvidx + 1, coords[b][1]);
-            uv.setX(uvidx + 2, coords[c][0]);
-            uv.setY(uvidx + 2, coords[c][1]);
-
-            uv.setX(uvidx + 3, coords[d][0]);
-            uv.setY(uvidx + 3, coords[d][1]);
-            uv.setX(uvidx + 4, coords[e][0]);
-            uv.setY(uvidx + 4, coords[e][1]);
-            uv.setX(uvidx + 5, coords[f][0]);
-            uv.setY(uvidx + 5, coords[f][1]);
-
-            // .. and move on
-            uvidx += 6;
-        }
-    }
-    console.log(`${revCount} tiles with fmReverse set`)
-
-    // Tell ThreeJS we modified the UVs...
-    uv.needsUpdate = true;    
-}
-
-function setRsc(rsc) {
-    currRsc = rsc
-    if (currMap) {
-        const atlas = createTextureAtlas(rsc)
-        setMapUV(obj.geometry, currMap, atlas)
-        obj.material.map = atlas
-        obj.material.needsUpdate = true
-    }
-}
-
-function setMap(map) {
-    const TILE_SIZE = 256
-
-    currMap = map
-
-    let geo = new THREE.PlaneBufferGeometry(
-        map.size * TILE_SIZE, map.size * TILE_SIZE,
-        map.size -1, map.size -1,
-    )
-    geo.rotateX(-Math.PI / 2)
-    geo.translate(map.size * TILE_SIZE / 2, 0, map.size * TILE_SIZE / 2)
-
-    const { position } = geo.attributes
-    for (let i = 0; i < position.count; i++) {
-        position.setY(i, map.heightMap[i] * map.yScale)
-    }
-
-    geo = geo.toNonIndexed()
-
-    let texMap // = tex
-    if (texMap) {
-        setMapUV(geo, map, texMap)
-    } else {
-        const data = new Uint8ClampedArray(map.size * map.size * 3)
-        for (let i = 0; i < map.size * map.size; i++) {
-            const val = map.dayShadows[i]
-            data[i*3 +0] = val
-            data[i*3 +1] = val
-            data[i*3 +2] = val
-        }
-        texMap = new THREE.DataTexture(data, map.size, map.size, THREE.RGBFormat, THREE.UnsignedByteType)
-        texMap.needsUpdate = true
-    }
-
-    scene.remove(obj)
-    obj = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: texMap }))
-    scene.add(obj)
-}

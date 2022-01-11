@@ -18,3 +18,12 @@ function downloadURL(data, fileName) {
     a.click()
     a.remove()
 }
+
+export const clamp = (num, min, max) => Math.min(Math.max(num, min), max)
+
+// from Resources.cpp
+export const conv_565 = v => (v & 31) + ((v & 0xFFE0) << 1)
+
+export function imgToImageData(img) {
+  return new ImageData(img.data, img.width, img.height)
+}

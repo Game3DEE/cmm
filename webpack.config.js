@@ -1,7 +1,13 @@
-const path = require('path');
+import path from 'path'
+import { fileURLToPath } from 'url';
 
-module.exports = {
-  entry: './src/view3dn.js',
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
+  entry: {
+    main: './src/view3dn.js',
+    game: './src/game.js',
+  },
   mode: 'development',
   devtool: 'inline-source-map',
   devServer: {
@@ -9,7 +15,6 @@ module.exports = {
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
-    clean: true,
+    filename: '[name].js',
   },
-};
+}
