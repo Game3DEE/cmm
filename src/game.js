@@ -31,9 +31,7 @@ function gameLoop() {
         let y = minimapOff[1] + (PlayerZ / 256) / 2
 
         minimapCtx.putImageData(minimapSrc, 0, 0)
-        minimapCtx.fillStyle = 'red'
         minimapCtx.fillRect(x -1, y -1, 2, 2)
-        minimapCtx.strokeStyle = 'green'
         minimapCtx.beginPath()
         minimapCtx.arc(x, y, 20, 0, Math.PI * 2)
         minimapCtx.stroke()
@@ -53,6 +51,8 @@ function setupMinimap(map, rsc, mapFrame) {
     canvas.height = mapFrame.height
     minimapCtx = canvas.getContext('2d')
     minimapCtx.putImageData(minimapSrc, 0, 0)
+    minimapCtx.fillStyle = 'red' // for red "dot"
+    minimapCtx.strokeStyle = 'green' // for green circle
 }
 
 function buildMinimapImage(map, rsc, mapFrame) {
