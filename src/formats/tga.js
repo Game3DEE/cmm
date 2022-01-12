@@ -1,5 +1,7 @@
 // Inspired from http://www.paulbourke.net/dataformats/tga/tgatest.c
 
+// TODO: add check for RLE compressed TGA files
+
 export function loadTGA(buffer) {
     const dv = new DataView(buffer)
     const idlength = dv.getUint8(0)
