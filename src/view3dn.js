@@ -12,6 +12,9 @@ import { loadTGA, saveTGA } from './formats/tga.js'
 import { loadOBJ, saveOBJ } from './formats/obj.js'
 import { loadPKM          } from './formats/pkm.js'
 
+// Vivisector formats
+import { loadCMF          } from './formats/cmf.js'
+
 // Carnivores Mobile formats
 import { load3DN, save3DN } from './formats/3dn.js'
 import { loadANI, saveANI } from './formats/ani.js'
@@ -65,6 +68,12 @@ function openFile(file) {
             case 'vtl':
                 addAnimation(baseName, loadVTL(buf), true)
                 model && setModel(model.name, model) // regenerate geometry with new morph data
+                break
+
+            case 'cmf':
+                tex = null
+                clearAnimations()
+                setModel(baseName, loadCMF(buf))
                 break
 
             // ---- Mobile formats
