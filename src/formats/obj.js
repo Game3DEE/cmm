@@ -86,7 +86,7 @@ export function saveOBJ(model) {
 `# Created by Game3DEE Carnivores Tools
 # ${model.vertices.length} vertices, ${model.faces.length} triangles
 g ${model.name}\n`
-    model.vertices.forEach(v => s += `v ${v.position[0]} ${v.position[2]} ${v.position[1]}\n`)
+    model.vertices.forEach(v => s += `v ${v.position[0]} ${v.position[1]} ${v.position[2]}\n`)
     model.faces.forEach(f => {
         s += `vt ${f.uvs[0] / 256} ${f.uvs[1] / 256} 0.0\n`
         s += `vt ${f.uvs[2] / 256} ${f.uvs[3] / 256} 0.0\n`
