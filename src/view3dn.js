@@ -352,7 +352,8 @@ function createTexture565() {
         let r = (data[i*4 +0] >>> 3) & 0x1f
         let g = (data[i*4 +1] >>> 3) & 0x1f
         let b = (data[i*4 +2] >>> 3) & 0x1f
-        texture[i] = (r << 10) | (g << 5) | b
+        let a = (data[i*4 +3] != 0) ? 0x8000 : 0
+        texture[i] = a | (r << 10) | (g << 5) | b
     }
 
     return texture

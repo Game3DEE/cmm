@@ -12,8 +12,8 @@ export function loadTGA(buffer) {
     const y_origin = dv.getUint16(10, true)
     const width = dv.getUint16(12, true)
     const height = dv.getUint16(14, true)
-    const bitsperpixel = dv.getUint8(16, true)
-    const imagedescriptor = dv.getUint8(17, true)
+    const bitsperpixel = dv.getUint8(16)
+    const imagedescriptor = dv.getUint8(17)
     let offset = 18
 
     // Skip over unnecessary stuff
@@ -82,8 +82,8 @@ export function saveTGA(image, bits = 32) {
     dv.setUint16(10, 0, true) // y_origin
     dv.setUint16(12, width, true)
     dv.setUint16(14, height, true)
-    dv.setUint8(16, bits, true)
-    dv.getUint8(17, 0, true) // imagedescriptor
+    dv.setUint8(16, bits)
+    dv.getUint8(17, 0) // imagedescriptor
     let offset = 18
 
     let byteView = new Uint8ClampedArray(data.buffer, data.byteOffset, data.byteLength)
