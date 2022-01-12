@@ -11,12 +11,15 @@ import { initRenderer, renderFrame } from './game/renderer/index.js'
 import { initAI, stepAI } from './game/ai.js'
 import { imgToImageData } from './utils.js'
 import { PlayerX, PlayerZ } from './game/player.js'
-
+import { KeyFlags, kf } from './game/input.js'
 
 let clock = new Clock()
+
 let minimapSrc
 let minimapCtx
+let minimap
 const minimapOff = [ 12, 24 ]
+let prevFrameKeyFlags = 0
 
 function gameLoop() {
     requestAnimationFrame(gameLoop)
@@ -26,7 +29,17 @@ function gameLoop() {
     stepEngine(delta)
     stepAI(delta)
 
-    if (minimapCtx) {
+    if (KeyFlags & kf.ToggleMap &&
+        !(prevFrameKeyFlags & kf.ToggleMap)) {
+        if (minimap?.style.display === 'none') {
+            minimap.style.display = 'block'
+        } else {
+            minimap.style.display = 'none'
+        }
+    }
+    prevFrameKeyFlags = KeyFlags
+
+    if (minimap?.style.display !== 'none') {
         let x = minimapOff[0] + (PlayerX / 256) / 2
         let y = minimapOff[1] + (PlayerZ / 256) / 2
 
@@ -44,12 +57,10 @@ function gameLoop() {
 function setupMinimap(map, rsc, mapFrame) {
     buildMinimapImage(map, rsc, mapFrame)
 
-    console.log(mapFrame, minimapSrc)
-
-    let canvas = document.getElementById('minimap')
-    canvas.width = mapFrame.width
-    canvas.height = mapFrame.height
-    minimapCtx = canvas.getContext('2d')
+    minimap = document.getElementById('minimap')
+    minimap.width = mapFrame.width
+    minimap.height = mapFrame.height
+    minimapCtx = minimap.getContext('2d')
     minimapCtx.putImageData(minimapSrc, 0, 0)
     minimapCtx.fillStyle = 'red' // for red "dot"
     minimapCtx.strokeStyle = 'green' // for green circle
