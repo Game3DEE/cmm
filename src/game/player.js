@@ -6,23 +6,11 @@ import {
     CheckCollision,
 } from './land.js'
 //import { MyHealth } from './game.js'
+import { kf } from './input.js'
 
 const swimSpeed = 0.25
 const runSpeed = 0.7
 const walkSpeed = 0.3
-
-export const kf = {
-    Forward: 1,
-    Backward: 2,
-    SRight: 4,
-    SLeft: 8,
-    Jump: 16,
-    LookUp: 32,
-    LookDn: 64,
-    Left: 128,
-    Right: 256,
-    Down: 512,
-}
 
 // Player velocity
 let VSpeed = 0, SSpeed = 0, YSpeed = 0

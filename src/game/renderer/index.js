@@ -1,3 +1,6 @@
+import * as THREE from 'three'
+import Stats from 'three/examples/jsm/libs/stats.module.js'
+
 import {
     createTextureAtlas,
     createMapGeometry,
@@ -5,9 +8,6 @@ import {
     TerrainMaterial,
     createLightMap,
 } from './terrain.js'
-
-import * as THREE from 'three'
-import Stats from 'three/examples/jsm/libs/stats.module.js'
 
 import { CameraAlpha, CameraBeta, CameraX, CameraY, CameraZ } from '../player.js'
 import { buildTexture565 } from '../../model.js'
@@ -126,7 +126,6 @@ function initObjects(map, rsc) {
           geometry, material,
           matrices[idx].length / 16,
         )
-        console.log(geometry)
         for (let i = 0; i < models[idx].count; i++) {
           mat.fromArray(matrices[idx], i * 16)
           models[idx].setMatrixAt(i, mat)
