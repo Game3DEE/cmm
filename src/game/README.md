@@ -8,14 +8,15 @@ Online implementation of Carnivores, supporting multiplayer.
 
 ## TODO
 
-* setNewTargetPlace bugged (sometimes gets stuck in endless retries)
+* setNewTargetPlace bugged (sometimes gets stuck in endless retries: Y is negative for some reason)
 * Use bitecs to seperate game logic from renderer:
     - render system:
         - use enter/leave to create/remove objects from scene
         - use tick to update alive object position/rotation
-* Add objects
+* Add objects (done)
     * Add object shadows to lightmap
     * Shader: Transparency / fog
+* Make Dimo movement/animations work
 * Add Mosh and sort out AI system (ambient)
     * AI is a set of phases, with logic like:
         - run away from user

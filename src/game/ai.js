@@ -215,6 +215,7 @@ function setNewTargetPlace(pos, radius, out) {
         }
 
         if (tr > 500) {
+            console.log(`setNewTargetPlace: ${pos[0]},${pos[1]},${pos[2]}/${radius}: ${p[0]},${p[1]},${p[2]}`)
             break
         }
 

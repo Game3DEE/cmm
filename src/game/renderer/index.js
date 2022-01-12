@@ -11,10 +11,15 @@ import Stats from 'three/examples/jsm/libs/stats.module.js'
 
 import { CameraAlpha, CameraBeta, CameraX, CameraY, CameraZ } from '../player.js'
 import { buildTexture565 } from '../../model.js'
+import { GetLandOH, GetObjectH, GetObjectHWater } from '../land.js'
+import { of } from '../../formats/rsc.js'
+import { conv_565 } from '../../utils.js'
 
 export let scene
 let camera, renderer
 let stats
+
+let models = [] // XXX can be removed?
 
 export function initRenderer(map, rsc) {
     initScene()
@@ -38,6 +43,96 @@ export function initRenderer(map, rsc) {
     const skyColor = new THREE.Color(color)
     const obj = new THREE.Mesh(geo, new TerrainMaterial(atlasTexture, lightMap, fogParams, skyColor, map.size));
     scene.add(obj)
+
+    // Init objects
+    initObjects(map, rsc)
+}
+
+function initObjects(map, rsc) {
+    const matrices = []
+    const mat = new THREE.Matrix4()
+    for (let i = 0; i < map.objectMap.length; i++) {
+      const ob = map.objectMap[i]
+      if (ob < 254) {
+        const cx = (i % map.size)
+        const cz = Math.floor(i / map.size)
+        if (rsc.objects[ob].flags & of.PlaceUser) map.objectHeightMap[i] += 48;
+        if (rsc.objects[ob].flags & of.PlaceGround) map.objectHeightMap[i] = GetObjectH(cx, cz, rsc.objects[ob].grRad);
+        if (rsc.objects[ob].flags & of.PlaceWater) map.objectHeightMap[i] = GetObjectHWater(cx, cz);
+        if (matrices[ob] === undefined) {
+          matrices[ob] = []
+        }
+        mat.makeTranslation(cx * 256 + 128, GetLandOH(cx, cz), cz * 256 + 128)
+        // TODO rotation?
+        matrices[ob].push.apply(matrices[ob], mat.toArray())
+      } else {
+        // 254 = landing, 255 = empty
+        map.objectHeightMap[i] = 48
+      }
+    }
+
+    rsc.objects.forEach(({ model }, idx) => {
+        const width = 256
+        const height = model.texture.length / width
+        const position = []
+        const texcoord = []
+        const indices = []
+    
+        if (matrices[idx] === undefined) {
+          // skip unused models, no need to waste VRAM
+          return
+        }
+
+        let data = new Uint16Array(model.texture.length)
+        for (let i = 0; i < model.texture.length; i++) {
+            data[i] = conv_565(model.texture[i])
+        }
+    
+        let ind = 0
+        model.faces.forEach(f => {
+          for (let i = 0; i < 3; i++) {
+            indices.push(ind++)
+            const v = model.vertices[f.indices[i]]
+            position.push(
+              v.position[0] * 2,
+              v.position[1] * 2,
+              v.position[2] * 2,
+            )
+            texcoord.push(
+              f.uvs[i*2+0] / 255,
+              f.uvs[i*2+1] / height,
+            )
+          }
+        })
+    
+        let geometry = new THREE.BufferGeometry()
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(position, 3))
+        geometry.setAttribute('uv', new THREE.Float32BufferAttribute(texcoord, 2))
+        geometry.setIndex(indices) // XXX index not really required
+        let map = new THREE.DataTexture(data, width, height, THREE.RGBFormat, THREE.UnsignedShort565Type)
+        map.wrapS = map.wrapT = THREE.RepeatWrapping
+        let material = new THREE.MeshBasicMaterial({ map, side: THREE.DoubleSide })
+        material.onBeforeCompile = s => {
+          let fs = s.fragmentShader
+          fs = fs.replace('#include <map_fragment>', `
+          #include <map_fragment>
+          if (length(diffuseColor.rgb) < 0.01) {
+            discard;
+          }
+          `)
+          s.fragmentShader = fs
+        }
+        models[idx] = new THREE.InstancedMesh(
+          geometry, material,
+          matrices[idx].length / 16,
+        )
+        console.log(geometry)
+        for (let i = 0; i < models[idx].count; i++) {
+          mat.fromArray(matrices[idx], i * 16)
+          models[idx].setMatrixAt(i, mat)
+        }
+        scene.add(models[idx])
+    })
 }
 
 export function initScene() {

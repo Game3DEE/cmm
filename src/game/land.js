@@ -222,7 +222,7 @@ export function checkObjectCollision(x, y, z, cb) {
     for (let zo = -2; zo <= 2; zo++) {
         for (let xo = -2; xo <= 2; xo++) {
             const ob = map.objectMap[mapIdx(ccz+zo,ccx+xo)]
-            if (false /* XXX ob != 255*/) {
+            if (ob != 255) {
                 const CR = rsc.objects[ob].radius //XXX - 1
             
                 const oz = (ccz + zo) * 256 + 128
@@ -268,10 +268,10 @@ export function CheckPlaceCollisionP(v) {
     for (let z = -2; z <= 2; z++) {
         for (let x = -2; x <= 2; x++) {
             const ob = map.objectMap[mapIdx(ccz+z,ccx+x)]
-            if (false /* ob != 255 */) {
-		        if (map.objects[ob].radius < 10) continue
+            if (ob != 255) {
+		        if (rsc.objects[ob].radius < 10) continue
 
-                let CR = map.objects[ob].radius + 64
+                let CR = rsc.objects[ob].radius + 64
         
                 let oz = (ccz + z) * 256 + 128
                 let ox = (ccx + x) * 256 + 128
