@@ -4,7 +4,7 @@ Online implementation of Carnivores, supporting multiplayer.
 
 ## BUGS
 
-* ThreeJS broke RGB565 in r136, while it worked in r128
+* ThreeJS broke RGB565 in r136, while it worked in r135
 
 ## TODO
 
