@@ -198,8 +198,6 @@ export function stepAI(delta) {
     model.mixer.update(delta)
 }
 
-let maxTr = 0
-
 function setNewTargetPlace(pos, radius, out) {
     let tr = 0
     let p = vec3.create()
@@ -209,13 +207,8 @@ function setNewTargetPlace(pos, radius, out) {
         p[2] = pos[2] + siRand(Math.floor(radius))
         p[1] = GetLandH(p[0], p[2])
         tr++
-        if (tr > maxTr) {
-            console.log(`setNewTargetPlace(): tries=${tr}`)
-            maxTr = tr
-        }
-
-        if (tr > 500) {
-            console.log(`setNewTargetPlace: ${pos[0]},${pos[1]},${pos[2]}/${radius}: ${p[0]},${p[1]},${p[2]}`)
+        if (tr >= 100) {
+            console.log(`setNewTargetPlace([${pos[0]},${pos[1]},${pos[2]}],${radius}): [${p[0]},${p[1]},${p[2]}]`)
             break
         }
 
