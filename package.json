@@ -21,7 +21,7 @@
   },
   "homepage": "https://gitlab.com/game3dee/view3dn#readme",
   "dependencies": {
-    "three": "^0.136.0"
+    "three": "^0.128.0"
   },
   "devDependencies": {
     "pngjs": "^6.0.0",

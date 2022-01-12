@@ -2,6 +2,10 @@
 
 Online implementation of Carnivores, supporting multiplayer.
 
+## BUGS
+
+* ThreeJS broke RGB565 in r136, while it worked in r128
+
 ## TODO
 
 * setNewTargetPlace bugged (sometimes gets stuck in endless retries)
