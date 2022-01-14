@@ -152,7 +152,7 @@ function init() {
     const globalOps = {
         exportTGA32: () => {
             if (tex) {
-                const buf = saveTGA(tex.image)
+                const buf = saveTGA(tex.image) // no need for conversion, on import all textures are 32-bit (RGBA)
                 downloadBlob(buf, `${tex.name}.tga`, 'application/octet-stream')
             }
         },
@@ -168,19 +168,19 @@ function init() {
         },
         exportTo3DF: () => {
             if (model) {
-                const buf = save3DF({ texture: createTexture565(), ...model })
+                const buf = save3DF({ ...model, texture: createTexture565() })
                 downloadBlob(buf, `${model.name}.3df`, 'application/octet-stream')
             }
         },
         exportToCAR: () => {
             if (model) {
-                const buf = saveCAR({ texture: createTexture565(), animations, ...model })
+                const buf = saveCAR({ ...model, animations, texture: createTexture565() })
                 downloadBlob(buf, `${model.name}.car`, 'application/octet-stream')
             }
         },
         exportTo3DN: () => {
             if (model) {
-                const buf = save3DN({ animations, ...model })
+                const buf = save3DN({ ...model, animations })
                 downloadBlob(buf, `${model.name}.3dn`, 'application/octet-stream')
             }
         },
