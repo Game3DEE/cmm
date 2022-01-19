@@ -27,3 +27,15 @@ export const conv_565 = v => (v & 31) + ((v & 0xFFE0) << 1)
 export function imgToImageData(img) {
   return new ImageData(img.data, img.width, img.height)
 }
+
+export function onMobile() {
+  const ua = navigator.userAgent;
+  if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+      return true // tablet
+  }
+  else if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
+      return true // phone?
+  }
+
+  return false // desktop
+}

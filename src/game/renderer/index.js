@@ -14,6 +14,7 @@ import { buildTexture565 } from '../../model.js'
 import { GetLandOH, GetObjectH, GetObjectHWater } from '../land.js'
 import { of } from '../../formats/rsc.js'
 import { conv_565 } from '../../utils.js'
+import { initHud, renderHud } from './hud.js'
 
 export let scene
 let camera, renderer
@@ -21,7 +22,9 @@ let stats
 
 let models = [] // XXX can be removed?
 
-export function initRenderer(map, rsc) {
+export let isWebGL2 = false
+
+export function initRenderer(map, rsc, compass) {
     initScene()
 
     // TODO: make a cubetexture somehow?
@@ -46,6 +49,60 @@ export function initRenderer(map, rsc) {
 
     // Init objects
     initObjects(map, rsc)
+
+    // Init HUD
+    initHud(compass, renderer)
+}
+
+export function createObject(model) {
+
+  const width = 256
+  const height = model.texture.length / width
+  const position = []
+  const texcoord = []
+  const indices = []
+
+  let data = new Uint16Array(model.texture.length)
+  for (let i = 0; i < model.texture.length; i++) {
+      data[i] = conv_565(model.texture[i])
+  }
+
+  let ind = 0
+  model.faces.forEach(f => {
+    for (let i = 0; i < 3; i++) {
+      indices.push(ind++)
+      const v = model.vertices[f.indices[i]]
+      position.push(
+        v.position[0] * 2,
+        v.position[1] * 2,
+        v.position[2] * 2,
+      )
+      texcoord.push(
+        f.uvs[i*2+0] / 255,
+        f.uvs[i*2+1] / height,
+      )
+    }
+  })
+
+  let geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(position, 3))
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(texcoord, 2))
+  geometry.setIndex(indices) // XXX index not really required
+  let map = new THREE.DataTexture(data, width, height, THREE.RGBFormat, THREE.UnsignedShort565Type)
+  map.wrapS = map.wrapT = THREE.RepeatWrapping
+  let material = new THREE.MeshBasicMaterial({ map, side: THREE.DoubleSide })
+  material.onBeforeCompile = s => {
+    let fs = s.fragmentShader
+    fs = fs.replace('#include <map_fragment>', `
+    #include <map_fragment>
+    if (length(diffuseColor.rgb) < 0.01) {
+      discard;
+    }
+    `)
+    s.fragmentShader = fs
+  }
+  
+  return { geometry, material }
 }
 
 function initObjects(map, rsc) {
@@ -71,57 +128,13 @@ function initObjects(map, rsc) {
       }
     }
 
-    rsc.objects.forEach(({ model }, idx) => {
-        const width = 256
-        const height = model.texture.length / width
-        const position = []
-        const texcoord = []
-        const indices = []
-    
+    rsc.objects.forEach(({ model }, idx) => {   
         if (matrices[idx] === undefined) {
           // skip unused models, no need to waste VRAM
           return
         }
 
-        let data = new Uint16Array(model.texture.length)
-        for (let i = 0; i < model.texture.length; i++) {
-            data[i] = conv_565(model.texture[i])
-        }
-    
-        let ind = 0
-        model.faces.forEach(f => {
-          for (let i = 0; i < 3; i++) {
-            indices.push(ind++)
-            const v = model.vertices[f.indices[i]]
-            position.push(
-              v.position[0] * 2,
-              v.position[1] * 2,
-              v.position[2] * 2,
-            )
-            texcoord.push(
-              f.uvs[i*2+0] / 255,
-              f.uvs[i*2+1] / height,
-            )
-          }
-        })
-    
-        let geometry = new THREE.BufferGeometry()
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(position, 3))
-        geometry.setAttribute('uv', new THREE.Float32BufferAttribute(texcoord, 2))
-        geometry.setIndex(indices) // XXX index not really required
-        let map = new THREE.DataTexture(data, width, height, THREE.RGBFormat, THREE.UnsignedShort565Type)
-        map.wrapS = map.wrapT = THREE.RepeatWrapping
-        let material = new THREE.MeshBasicMaterial({ map, side: THREE.DoubleSide })
-        material.onBeforeCompile = s => {
-          let fs = s.fragmentShader
-          fs = fs.replace('#include <map_fragment>', `
-          #include <map_fragment>
-          if (length(diffuseColor.rgb) < 0.01) {
-            discard;
-          }
-          `)
-          s.fragmentShader = fs
-        }
+        const { geometry, material } = createObject(model)
         models[idx] = new THREE.InstancedMesh(
           geometry, material,
           matrices[idx].length / 16,
@@ -146,6 +159,8 @@ export function initScene() {
     renderer.setPixelRatio(window.devicePixelRatio)
     renderer.setSize(window.innerWidth, window.innerHeight)
     document.body.appendChild(renderer.domElement)
+
+    isWebGL2 = renderer.capabilities.isWebGL2
 
     stats = new Stats()
     document.body.appendChild(stats.dom)
@@ -182,5 +197,8 @@ export function renderFrame(delta) {
 
     // Render
     renderer.render(scene, camera)
+    renderHud(renderer, camera)
+
+    // Update fps stats
     stats?.update()
 }

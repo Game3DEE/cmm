@@ -1,3 +1,7 @@
+// TODO:
+//   - handle texture size (uv mult)
+//   - figure out animation format
+
 import {
     readFaces, readVertices,
     writeFaces, writeVertices,
@@ -152,7 +156,7 @@ export function saveCAR(model) {
         for (let i = 0; i < anim.frames.length; i++) {
             dv.setInt16(offset, anim.frames[i], true)
             offset += 2
-        }    
+        }
     })
 
     /*

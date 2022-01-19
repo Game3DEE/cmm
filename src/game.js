@@ -4,6 +4,7 @@ import { loadRSC } from './formats/rsc.js'
 import { loadMAP } from './formats/map.js'
 import { loadMAN } from './formats/man.js'
 import { loadCAR } from './formats/car.js'
+import { load3DF } from './formats/3df.js'
 import { loadTGA } from './formats/tga.js'
 
 import { initEngine, stepEngine } from './game/engine.js'
@@ -95,21 +96,29 @@ function buildMinimapImage(map, rsc, mapFrame) {
     minimapSrc = imgToImageData(mapFrame)
 }
 
+const loading = document.getElementById('loading')
+
 Promise.all([
     fetch('HUNTDAT/AREAS/AREA1.MAP').then(body => body.arrayBuffer()),
     fetch('HUNTDAT/AREAS/AREA1.RSC').then(body => body.arrayBuffer()),
+    fetch('HUNTDAT/COMPAS.3DF').then(body => body.arrayBuffer()),
     fetch('HUNTDAT/DIMOR2.CAR').then(body => body.arrayBuffer()),
     fetch('HUNTDAT/MENU/MAPFRAME.TGA').then(body => body.arrayBuffer()),
-]).then(([ mapBuf, rscBuf, carBuf, frameBuf ]) => {
+]).then(([ mapBuf, rscBuf, compassBuf, carBuf, frameBuf ]) => {
     let map = loadMAP(mapBuf)
     let rsc = loadRSC(rscBuf, map.version)
     let car = loadCAR(carBuf)
     let mmap = loadTGA(frameBuf)
+    let compass = load3DF(compassBuf)
   
     initEngine(map, rsc)
-    initRenderer(map, rsc)
+    initRenderer(map, rsc, compass.model)
     initAI(car)
     setupMinimap(map, rsc, mmap)
 
+    // hide loading message
+    loading.style.display = 'none'
+
+    // start game
     requestAnimationFrame(gameLoop)
 })

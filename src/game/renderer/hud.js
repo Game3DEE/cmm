@@ -1,0 +1,62 @@
+import {
+    Mesh,
+    OrthographicCamera,
+    Scene,
+    Vector2,
+    Vector3,
+    Spherical,
+} from 'three'
+
+import { createObject } from './index.js'
+
+let hudCam, hudScene, compassMesh
+const dir = new Vector3()
+const sph = new Spherical()
+
+export function initHud(compass, renderer) {
+    const size = new Vector2()
+    renderer.getSize(size)
+
+    console.log('render size:', size)
+
+    const { geometry, material } = createObject(compass)
+    compassMesh = new Mesh(geometry, material)
+
+    hudCam = new OrthographicCamera()
+    hudCam.position.set(0,0, 220)
+
+    hudScene = new Scene()
+    //compassMesh.position.set(size.x / 2 - 220, - size.y / 2 + 120, 0)
+    compassMesh.rotation.x = -Math.PI / 5
+    compassMesh.scale.setScalar(0.01)
+    compassMesh.position.x = 0.7
+    compassMesh.position.y = -0.7
+    hudScene.add(compassMesh)
+}
+
+export function renderHud(renderer, camera) {
+    camera.getWorldDirection(dir)
+    sph.setFromVector3(dir)
+    compassMesh.rotation.y = sph.theta + Math.PI
+
+    let autoClear = renderer.autoClear
+    renderer.autoClear = false
+    renderer.clearDepth()
+    renderer.render(hudScene, hudCam)
+    renderer.autoClear = autoClear
+}
+
+/*
+<primitive
+  position={[- size.width / 2 + 220, - size.height / 2 + 120, 0]}
+  rotation-x={-Math.PI/8}
+  scale={10}
+  object={wind}
+/>
+<primitive
+  position={[size.width / 2 - 220, - size.height / 2 + 120, 0]}
+  rotation-x={-Math.PI/8}
+  scale={10}
+  object={compass}
+/>
+*/

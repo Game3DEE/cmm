@@ -5,32 +5,27 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
-//import { GUI } from 'three/examples/jsm/libs/dat.gui.module.js'
 
 // Common formats
-import { loadTGA, saveTGA } from './formats/tga.js'
+import { saveTGA } from './formats/tga.js'
 import { loadOBJ, saveOBJ } from './formats/obj.js'
-import { loadPKM          } from './formats/pkm.js'
-
-// Vivisector formats
-import { loadCMF          } from './formats/cmf.js'
 
 // Carnivores Mobile formats
-import { load3DN, save3DN } from './formats/3dn.js'
-import { loadANI, saveANI } from './formats/ani.js'
-import { loadCRT          } from './formats/crt.js'
-import { loadRST          } from './formats/rst.js'
+import { save3DN } from './formats/3dn.js'
+import { saveANI } from './formats/ani.js'
 
 // Carnivores PC formats
-import { load3DF, save3DF } from './formats/3df.js'
-import { loadCAR, saveCAR } from './formats/car.js'
-import { loadVTL, saveVTL } from './formats/vtl.js'
+import { save3DF } from './formats/3df.js'
+import { saveCAR } from './formats/car.js'
+import { saveVTL } from './formats/vtl.js'
 
 import { downloadBlob } from './utils.js'
+import { DataType } from './plugins/plugin.js'
+import { setupPlugins } from './plugins/index.js'
 
 let camera, scene, renderer
 let stats, controls
-let gui, folderAnimations
+let gui, folderAnimations, folderTextures
 let mixer
 
 let clock = new THREE.Clock()
@@ -39,78 +34,53 @@ let obj, model, tex, animations = []
 
 let vertCountSpan, faceCountSpan, modelNameSpan
 
-const textFormats = [ 'rst', 'obj' ]
+const plugins = []
 
-function openFile(file) {
-    const name = file.name.toLowerCase()
-    const url = URL.createObjectURL(file)
-    const nameParts = name.split('.')
-    if (nameParts.length === 1) return // Fail if no extension
-    const ext = nameParts.pop()
-    const baseName = nameParts[0]
-    // fetch URL (retrieves local file, no physical network involved)
-    fetch(url).then(body => textFormats.includes(ext) ? body.text() : body.arrayBuffer()).then(buf => {
-        switch(ext) {
-            // ---- PC formats
-            case '3df':
-                clearAnimations()
-                let mdl = load3DF(buf).model
-                setTexture565(baseName, mdl.texture, mdl.textureSize)
-                setModel(baseName, mdl)
-                break
-            case 'car':
-                clearAnimations()
-                let car = loadCAR(buf)
-                car.animations.forEach(anim => addAnimation(anim.name, anim))
-                setTexture565(baseName, car.texture, car.textureSize)
-                setModel(baseName, car)
-                break
-            case 'vtl':
-                addAnimation(baseName, loadVTL(buf), true)
-                model && setModel(model.name, model) // regenerate geometry with new morph data
-                break
+async function openFile(url, name) {
+    const fileName = name.toLowerCase()
+    const splitName = fileName.split('.')
+    const baseName = splitName[0]
+    const ext = splitName.pop()
 
-            case 'cmf':
-                tex = null
-                clearAnimations()
-                setModel(baseName, loadCMF(buf))
-                break
-
-            // ---- Mobile formats
-            case '3dn':
-                tex = null
-                clearAnimations()
-                setModel(baseName, load3DN(buf))
-                break
-            case 'ani':
-                addAnimation(baseName, loadANI(buf), true)
-                model && setModel(model.name, model) // regenerate geometry with new morph data
-                break
-            case 'crt':
-                setTexture(baseName, loadCRT(buf))
-                model && setModel(model.name, model) // regenerate geometry with new morph data
-                break
-            case 'rst':
-                loadRST(buf)
-                break
-
-            // ---- Common formats
-            case 'obj': // model
-                tex = null
-                clearAnimations()
-                const omdl = loadOBJ(buf)
-                setModel(omdl.name, omdl)
-                break
-            case 'tga': // texture
-                setTexture(baseName, loadTGA(buf))
-                model && setModel(model.name, model) // regenerate geometry for proper uv Y coordinates
-                break
-            case 'pkm': // texture
-                setTexture(baseName, loadPKM(buf))
-                model && setModel(model.name, model) // regenerate geometry for proper uv Y coordinates
-                break
+    for (let j = 0; j < plugins.length; j++) {
+        const plug = plugins[j]
+        if (plug.supportedExtensions().includes(ext)) {
+            try {
+                const data = await plug.loadFile(url, fileName)
+                let currModel = model
+                data.forEach(d => {
+                    switch(d.type) {
+                        case DataType.Model:
+                            clearAnimations()
+                            tex = null
+                            currModel = d.model
+                            currModel.name = currModel.name || baseName
+                            break
+                        case DataType.Texture:
+                            setTexture(baseName, d.texture)
+                            break
+                        case DataType.Animation:
+                            addAnimation(d.animation.name ? d.animation.name : baseName, d.animation)
+                            break
+                    }
+                })
+                if (currModel) { // Update model with new metadata
+                    setModel(currModel.name, currModel)
+                }
+                return // plugin loaded file successfully, skip other plugins
+            } catch(e) {
+                console.error(`Plugin "${plug.name()}" failed to load "${file.name}"!`, e)
+            }
         }
-    })    
+    }    
+}
+
+async function openFiles(fileList) {
+    for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i]
+        const url = URL.createObjectURL(file)
+        await openFile(url, file.name)
+    }
 }
 
 function init() {
@@ -141,13 +111,42 @@ function init() {
 
     const fileButton = document.getElementById('openfile')
 
+    controls = new OrbitControls(camera, renderer.domElement)
+
+    // Setup GUI
+
+    gui = new GUI()
+
+    plugins.push.apply(plugins, setupPlugins(gui))
+
     const settings = {
         axes: true,
         grid: true,
     }
 
-    controls = new OrbitControls(camera, renderer.domElement)
-    gui = new GUI()
+    const unsaved = {
+        mode: 0,
+    }
+
+    // build list of modes
+    const modes = {}
+    plugins.forEach((p,i) => {
+        if (p.isMode()) {
+            modes[p.name()] = i
+        }
+    })
+
+    gui.add(unsaved, 'mode', modes)
+
+
+    const guiFolder = gui.addFolder("GUI")
+    guiFolder.add(settings, 'axes').onChange(v => axes.visible = v)
+    guiFolder.add(settings, 'grid').onChange(v => grid.visible = v)
+    guiFolder.close()
+    const editFolder = gui.addFolder("Edit")
+    const exportFolder = gui.addFolder("Export")
+    folderTextures = gui.addFolder('Textures')
+    folderAnimations = gui.addFolder('Animations')
 
     const globalOps = {
         exportTGA32: () => {
@@ -226,14 +225,8 @@ function init() {
         }
     }
 
-    const guiFolder = gui.addFolder("GUI")
-    guiFolder.add(settings, 'axes').onChange(v => axes.visible = v)
-    guiFolder.add(settings, 'grid').onChange(v => grid.visible = v)
-    guiFolder.close()
-    const editFolder = gui.addFolder("Edit")
     editFolder.add(globalOps, 'flipUV')
     editFolder.add(globalOps, 'flipTriangles')
-    const exportFolder = gui.addFolder("Export")
     exportFolder.add(globalOps, 'exportTo3DF').name('To 3DF')
     exportFolder.add(globalOps, 'exportToCAR').name('To CAR')
     exportFolder.add(globalOps, 'exportTo3DN').name('To 3DN')
@@ -242,7 +235,6 @@ function init() {
     exportFolder.add(globalOps, 'exportTGA16').name('To 16-bit TGA')
     exportFolder.close()
 
-    folderAnimations = gui.addFolder('Animations')
     folderAnimations.add({
         stop: () => mixer?.stopAllAction(),
     }, 'stop')
@@ -251,16 +243,14 @@ function init() {
     window.addEventListener('resize', onWindowResize)
 
     // file selection
-    fileButton.addEventListener('change', ev => {
+    fileButton.addEventListener('change', async ev => {
         ev.preventDefault()
-        ev.target.files?.length && openFile(ev.target.files[0])
+        ev.target.files?.length && await openFiles(ev.target.files)
     })
     renderer.domElement.addEventListener('dragover', ev => ev.preventDefault())
-    renderer.domElement.addEventListener('drop', ev => {
+    renderer.domElement.addEventListener('drop', async ev => {
         ev.preventDefault()
-        if (ev.dataTransfer.files?.length) {
-            openFile(ev.dataTransfer.files[0])
-        }
+        ev.dataTransfer.files && await openFiles(ev.dataTransfer.files)
     })
 }
 
@@ -281,8 +271,6 @@ function render() {
     stats.update()
     controls.update()
 }
-
-init()
 
 function clearAnimations() {
     // Clear Animations folder
@@ -324,32 +312,6 @@ function addAnimation(name, ani, check = false) {
     aniFolder.add(ctx, 'exportToANI')
 }
 
-function setTexture565(name, texture, textureBytes) {
-    // Bail out early if we have no texture data
-    if (!textureBytes) {
-        tex = null
-        return
-    }
-
-    const width = 256
-    const height = (textureBytes / 2) / width
-    const data = new Uint8ClampedArray(width * height * 4)
-
-    for (let i = 0; i < texture.length; i++) {
-        let pixel = texture[i]
-        let r = ((pixel >>> 10) & 0x1f);
-        let g = ((pixel >>>  5) & 0x1f);
-        let b = ((pixel >>>  0) & 0x1f);
-      
-        data[i*4 +0] = r << 3;
-        data[i*4 +1] = g << 3;
-        data[i*4 +2] = b << 3;
-        data[i*4 +3] = 255
-    }
-
-    setTexture(name, { width, height, data })
-}
-
 function createTexture565() {
     // bail out if no current texture
     if (!tex) return undefined
@@ -369,6 +331,7 @@ function createTexture565() {
 }
 
 function setTexture(name, image) {
+    console.log(`setTexure(${name}, ${image.width}, ${image.height})`)
     tex = new THREE.DataTexture(image.data, image.width, image.height, THREE.RGBAFormat, THREE.UnsignedByteType)
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping
     tex.needsUpdate = true
@@ -453,7 +416,7 @@ function setModel(name, newModel) {
 
     const mat = tex ?
         new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, alphaTest: 0.5, transparent: true }) :
-        new THREE.MeshNormalMaterial({ /*side: THREE.DoubleSide*/ })
+        new THREE.MeshBasicMaterial({ wireframe: true /*side: THREE.DoubleSide*/ })
 
     if (obj) {
         scene.remove(obj)
@@ -484,17 +447,43 @@ function setModel(name, newModel) {
     scene.add(obj)
 }
 
-Promise.all([
-    fetch('amargasaurus.3dn').then(body => body.arrayBuffer()),
-    fetch('amargasaurus.tga').then(body => body.arrayBuffer()),
-    fetch('amargasaurus_idle_active.ani').then(body => body.arrayBuffer()),
-]).then(([ modelBuffer, tgaBuffer, aniBuffer ]) => {
-    const model = load3DN(modelBuffer)
-    const image = loadTGA(tgaBuffer)
-    const ani = loadANI(aniBuffer)
-    setTexture('amargasaurus', image)
-    addAnimation('amargasaurus_idle_active', ani)
-    setModel('amargasaurus', model)
+init()
 
-    requestAnimationFrame(render)
-})
+const demoFile = 'saurophaganax.car'
+openFile(demoFile, demoFile)
+
+requestAnimationFrame(render)
+
+
+/*
+        switch(ext) {
+            case 'cmf': // Vivisector format
+                tex = null
+                clearAnimations()
+                setModel(baseName, loadCMF(buf))
+                break
+            case 'ssm': // Primal Prey/Deer Hunter 3
+                tex = null
+                clearAnimations()
+                setModel(baseName, loadSSM(buf))
+                break
+            case 'mdl': // Cityscape (Serious Engine)
+                loadMDL(buf)
+                //tex = null
+                //clearAnimations()
+                //setModel(baseName, loadMDL(buf))
+                break
+
+            // ---- Common formats
+            case 'obj': // model
+                tex = null
+                clearAnimations()
+                const omdl = loadOBJ(buf)
+                setModel(omdl.name, omdl)
+                break
+            case 'tga': // texture
+                setTexture(baseName, loadTGA(buf))
+                model && setModel(model.name, model) // regenerate geometry for proper uv Y coordinates
+                break
+        }
+*/

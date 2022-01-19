@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { conv_565 } from '../../utils.js'
+import { isWebGL2 } from './index.js'
 
 const mapScale = 256
 
@@ -76,7 +77,6 @@ export function createTextureAtlas(rsc) {
 
     // Done! Now simply create a ThreeJS texture from the data
     const tex = new THREE.DataTexture(data, atlasSize, atlasSize, THREE.RGBFormat, THREE.UnsignedShort565Type)
-    tex.internalFormat = 'RGB565' // is this required because of WGL2?
     console.log(rsc.textureCount, textureDim, atlasSize, tex)
     tex.needsUpdate = true
 
@@ -152,7 +152,7 @@ export function setupTerrainUV(geometry, map, atlasTexture, atlasTileSize) {
 
 export function createLightMap(data, size) {
     //const format = ( renderer.capabilities.isWebGL2 ) ? THREE.RedFormat : THREE.LuminanceFormat;
-    const tex = new THREE.DataTexture(data, size, size, THREE.RedFormat, THREE.UnsignedByteType)
+    const tex = new THREE.DataTexture(data, size, size, isWebGL2 ? THREE.RedFormat : THREE.LuminanceFormat, THREE.UnsignedByteType)
     tex.magFilter = tex.minFilter = THREE.LinearFilter
     tex.needsUpdate = true
     
