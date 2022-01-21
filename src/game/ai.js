@@ -191,7 +191,7 @@ export function stepAI(delta) {
 
     // XXXX move to renderer
     container.position.fromArray(cPos)
-    model.rotation.y = cAlpha
+    model.rotation.y = cAlpha + Math.PI
     //model.rotation.z = cGamma
 
     // rotation?

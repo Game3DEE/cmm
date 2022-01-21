@@ -5,7 +5,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   entry: {
-    main: './src/view3dn.js',
+    main: './src/cmm.js',
     game: './src/game.js',
   },
   mode: 'development',
@@ -16,5 +16,11 @@ export default {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].js',
+  },
+  resolve: {
+    fallback: {
+      "buffer": false,
+      "zlib": false,
+    },
   },
 }

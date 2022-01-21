@@ -138,7 +138,6 @@ function init() {
 
     gui.add(unsaved, 'mode', modes)
 
-
     const guiFolder = gui.addFolder("GUI")
     guiFolder.add(settings, 'axes').onChange(v => axes.visible = v)
     guiFolder.add(settings, 'grid').onChange(v => grid.visible = v)

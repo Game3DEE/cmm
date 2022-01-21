@@ -102,17 +102,19 @@ Promise.all([
     fetch('HUNTDAT/AREAS/AREA1.MAP').then(body => body.arrayBuffer()),
     fetch('HUNTDAT/AREAS/AREA1.RSC').then(body => body.arrayBuffer()),
     fetch('HUNTDAT/COMPAS.3DF').then(body => body.arrayBuffer()),
+    fetch('HUNTDAT/WIND.CAR').then(body => body.arrayBuffer()),
     fetch('HUNTDAT/DIMOR2.CAR').then(body => body.arrayBuffer()),
     fetch('HUNTDAT/MENU/MAPFRAME.TGA').then(body => body.arrayBuffer()),
-]).then(([ mapBuf, rscBuf, compassBuf, carBuf, frameBuf ]) => {
+]).then(([ mapBuf, rscBuf, compassBuf, windBuf, carBuf, frameBuf ]) => {
     let map = loadMAP(mapBuf)
     let rsc = loadRSC(rscBuf, map.version)
     let car = loadCAR(carBuf)
     let mmap = loadTGA(frameBuf)
     let compass = load3DF(compassBuf)
+    let wind = loadCAR(windBuf)
   
     initEngine(map, rsc)
-    initRenderer(map, rsc, compass.model)
+    initRenderer(map, rsc, compass.model, wind)
     initAI(car)
     setupMinimap(map, rsc, mmap)
 

@@ -18,6 +18,7 @@ export const kf = {
     Right: 256,
     Down: 512,
     ToggleMap: 1024,
+    ToggleHUD: 2048,
 }
 
 function handleKey(ev) {
@@ -58,6 +59,9 @@ function handleKey(ev) {
             break
         case 'x':
             setOrClearKeyFlag(kf.Down)
+            break
+        case 'h':
+            setOrClearKeyFlag(kf.ToggleHUD)
             break
         case 'tab':
             setOrClearKeyFlag(kf.ToggleMap)

@@ -5,6 +5,7 @@ import { CarnivoresPlugin } from "./carnivores.js"
 import { VivisectorPlugin } from "./vivisector.js"
 import { PrimalPreyPlugin } from './primalprey.js'
 import { CityscapePlugin } from './cityscape.js'
+export { DataType } from './plugin.js'
 
 export function setupPlugins(gui) {
     return [

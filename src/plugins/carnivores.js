@@ -1,3 +1,11 @@
+import {
+    AnimationClip,
+    BufferGeometry,
+    Float32BufferAttribute,
+    MeshBasicMaterial,
+    Mesh,
+} from 'three'
+
 import { DataType, Plugin } from './plugin.js'
 
 // Loaders (all carnivores specific)
@@ -33,7 +41,7 @@ export class CarnivoresPlugin extends Plugin {
         const data = load3DF(await this.loadFromURL(url))
         const tex = this.convertTexture(data.texture, data.textureSize)
         const result = [
-            { 'type': DataType.Model, model: data },
+            { 'type': DataType.Model, model: this.createMeshFromModel(data) },
         ]
 
         if (tex) { // we could have a zero byte texture
@@ -49,7 +57,7 @@ export class CarnivoresPlugin extends Plugin {
     async load3DN(url) {
         const data = load3DN(await this.loadFromURL(url))
         return [
-            { 'type': DataType.Model, model: data },
+            { 'type': DataType.Model, model: this.createMeshFromModel(data) },
         ]
     }
 
@@ -57,7 +65,7 @@ export class CarnivoresPlugin extends Plugin {
         const data = loadCAR(await this.loadFromURL(url))
         const tex = this.convertTexture(data.texture, data.textureSize)
         const result = [
-            { 'type': DataType.Model, model: data },
+            { 'type': DataType.Model, model: this.createMeshFromModel(data) },
         ]
 
         if (tex) { // we could have a zero byte texture
@@ -107,6 +115,20 @@ export class CarnivoresPlugin extends Plugin {
         const { animations } = model
         const totalFrames = animations?.reduce((a,b) => a + b.frameCount, 0)
 
+        const morphVertices = []
+        const position = []
+        const uv = []
+
+        if (totalFrames) {
+            for (let i = 0; i < totalFrames; i++) {
+                morphVertices[i] = []
+            }
+        }
+
+        const width = 256
+        const height = 256
+        const tex = undefined
+
         model.faces.forEach(f => {
             for (let i = 0; i < 3; i++) {
                 const vIdx = f.indices[i]
@@ -139,9 +161,9 @@ export class CarnivoresPlugin extends Plugin {
             )
         })
     
-        const geo = new THREE.BufferGeometry()
-        geo.setAttribute('position', new THREE.Float32BufferAttribute(position, 3))
-        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2))
+        const geo = new BufferGeometry()
+        geo.setAttribute('position', new Float32BufferAttribute(position, 3))
+        geo.setAttribute('uv', new Float32BufferAttribute(uv, 2))
         geo.computeVertexNormals()
     
         if (totalFrames) {
@@ -150,7 +172,7 @@ export class CarnivoresPlugin extends Plugin {
             let frIdx = 0
             animations.forEach(ani => {
                 for (let i = 0; i < ani.frameCount; i++) {
-                    const attr = new THREE.Float32BufferAttribute(morphVertices[frIdx + i], 3)
+                    const attr = new Float32BufferAttribute(morphVertices[frIdx + i], 3)
                     attr.name = `${ani.name}.${i}`
                     geo.morphAttributes.position.push(attr)
                 }
@@ -159,10 +181,10 @@ export class CarnivoresPlugin extends Plugin {
         }
     
         const mat = tex ?
-            new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.5, transparent: true }) :
-            new THREE.MeshBasicMaterial({ wireframe: true /*side: THREE.DoubleSide*/ })
+            new MeshBasicMaterial({ map: tex, alphaTest: 0.5, transparent: true }) :
+            new MeshBasicMaterial({ wireframe: true /*side: THREE.DoubleSide*/ })
     
-        let obj = new THREE.Mesh(geo, mat)
+        let obj = new Mesh(geo, mat)
         obj.name = model.name
         if (totalFrames) {
             animations.forEach(ani => {
@@ -173,7 +195,7 @@ export class CarnivoresPlugin extends Plugin {
                         vertices: [], // seems unused
                     })
                 }
-                const clip = THREE.AnimationClip.CreateFromMorphTargetSequence(
+                const clip = AnimationClip.CreateFromMorphTargetSequence(
                     `${ani.name}`,
                     seq,
                     ani.fps,

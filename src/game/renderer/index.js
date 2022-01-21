@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
+import { KeyFlags, kf } from '../input.js'
 
 import {
     createTextureAtlas,
@@ -24,7 +25,7 @@ let models = [] // XXX can be removed?
 
 export let isWebGL2 = false
 
-export function initRenderer(map, rsc, compass) {
+export function initRenderer(map, rsc, compass, wind) {
     initScene()
 
     // TODO: make a cubetexture somehow?
@@ -51,7 +52,7 @@ export function initRenderer(map, rsc, compass) {
     initObjects(map, rsc)
 
     // Init HUD
-    initHud(compass, renderer)
+    initHud(compass, wind, renderer)
 }
 
 export function createObject(model) {
@@ -178,8 +179,17 @@ function onWindowResize() {
 }
 
 let time = 0
+let prevFrameKeyFlags = 0
+let renderHUD = true
 
 export function renderFrame(delta) {
+  if (KeyFlags & kf.ToggleHUD &&
+    !(prevFrameKeyFlags & kf.ToggleHUD)) {
+      renderHUD = !renderHUD
+  }
+  prevFrameKeyFlags = KeyFlags // TODO: make proper input system!
+
+
     time += delta
     // Update camera
     camera.position.set(CameraX, CameraY, CameraZ)
@@ -197,7 +207,7 @@ export function renderFrame(delta) {
 
     // Render
     renderer.render(scene, camera)
-    renderHud(renderer, camera)
+    renderHUD && renderHud(renderer, camera)
 
     // Update fps stats
     stats?.update()

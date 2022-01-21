@@ -98,9 +98,9 @@ types:
         repeat: expr
         repeat-expr: _root.obj_count
       - id: vertices
-        type: f4
+        type: vector3f
         repeat: expr
-        repeat-expr: _root.vert_count * 3
+        repeat-expr: _root.vert_count
 
   animation:
     seq:
@@ -168,3 +168,12 @@ types:
       - id: value
         type: str
         size: value_len
+
+  vector3f:
+    seq:
+      - id: x
+        type: f4
+      - id: y
+        type: f4
+      - id: z
+        type: f4
