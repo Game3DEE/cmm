@@ -1,12 +1,16 @@
 import {
     AnimationClip,
     BufferGeometry,
+    DataTexture,
     Float32BufferAttribute,
     MeshBasicMaterial,
     Mesh,
+    UnsignedShort565Type,
+    RGBFormat,
 } from 'three'
 
 import { DataType, Plugin } from './plugin.js'
+import { conv_565 } from '../utils.js'
 
 // Loaders (all carnivores specific)
 import { load3DF } from '../formats/3df.js'
@@ -32,7 +36,7 @@ export class CarnivoresPlugin extends Plugin {
     async loadCRT(url) {
         const tex = loadCRT(await this.loadFromURL(url))
         return [{
-            'type': DataType.Texture,
+            type: DataType.Texture,
             texture: tex,
         }]
     }
@@ -41,12 +45,13 @@ export class CarnivoresPlugin extends Plugin {
         const data = load3DF(await this.loadFromURL(url))
         const tex = this.convertTexture(data.texture, data.textureSize)
         const result = [
-            { 'type': DataType.Model, model: this.createMeshFromModel(data) },
+            { type: DataType.Model, model: this.createMeshFromModel(data, tex) },
+            { type: DataType.Texture, texture: tex },
         ]
 
         if (tex) { // we could have a zero byte texture
             result.push({
-                'type': DataType.Texture,
+                type: DataType.Texture,
                 texture: tex,
             })
         }
@@ -57,7 +62,7 @@ export class CarnivoresPlugin extends Plugin {
     async load3DN(url) {
         const data = load3DN(await this.loadFromURL(url))
         return [
-            { 'type': DataType.Model, model: this.createMeshFromModel(data) },
+            { type: DataType.Model, model: this.createMeshFromModel(data) },
         ]
     }
 
@@ -65,7 +70,7 @@ export class CarnivoresPlugin extends Plugin {
         const data = loadCAR(await this.loadFromURL(url))
         const tex = this.convertTexture(data.texture, data.textureSize)
         const result = [
-            { 'type': DataType.Model, model: this.createMeshFromModel(data) },
+            { type: DataType.Model, model: this.createMeshFromModel(data, tex) },
         ]
 
         if (tex) { // we could have a zero byte texture
@@ -111,7 +116,7 @@ export class CarnivoresPlugin extends Plugin {
         return [ '3df', 'car', '3dn', 'vtl', 'ani', 'crt' ]
     }
 
-    createMeshFromModel(model) {
+    createMeshFromModel(model, tex) {
         const { animations } = model
         const totalFrames = animations?.reduce((a,b) => a + b.frameCount, 0)
 
@@ -125,9 +130,8 @@ export class CarnivoresPlugin extends Plugin {
             }
         }
 
-        const width = 256
-        const height = 256
-        const tex = undefined
+        const width = tex ? tex.image.width : 256
+        const height = tex ? tex.image.height : 256
 
         model.faces.forEach(f => {
             for (let i = 0; i < 3; i++) {
@@ -217,20 +221,12 @@ export class CarnivoresPlugin extends Plugin {
 
         const width = 256
         const height = (textureBytes / 2) / width
-        const data = new Uint8ClampedArray(width * height * 4)
+        const data = new Uint16Array(width * height)
 
         for (let i = 0; i < texture.length; i++) {
-            let pixel = texture[i]
-            let r = ((pixel >>> 10) & 0x1f)
-            let g = ((pixel >>>  5) & 0x1f)
-            let b = ((pixel >>>  0) & 0x1f)
-        
-            data[i*4 +0] = r << 3
-            data[i*4 +1] = g << 3
-            data[i*4 +2] = b << 3
-            data[i*4 +3] = 255
+            data[i] = conv_565(texture[i])
         }
 
-        return { width, height, data }
+        return new DataTexture(data, width, height, RGBFormat, UnsignedShort565Type)
     }
 }

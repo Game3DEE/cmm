@@ -39,9 +39,3 @@ export class Plugin {
         return await fetch(url).then(body => body.arrayBuffer())
     }
 }
-
-
-// load results:
-//    - geometry (model)
-//    - texture (image)
-//    - animation

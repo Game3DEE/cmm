@@ -5,6 +5,7 @@ import { CarnivoresPlugin } from "./carnivores.js"
 import { VivisectorPlugin } from "./vivisector.js"
 import { PrimalPreyPlugin } from './primalprey.js'
 import { CityscapePlugin } from './cityscape.js'
+import { DDSPlugin } from "./dds.js"
 export { DataType } from './plugin.js'
 
 export function setupPlugins(gui) {
@@ -18,5 +19,6 @@ export function setupPlugins(gui) {
         new BrowserImagePlugin(gui),
         new PKMPlugin(gui),
         new TGAPlugin(gui),
+        new DDSPlugin(gui),
     ]
 }

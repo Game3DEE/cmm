@@ -7,7 +7,7 @@ export class TGAPlugin extends Plugin {
         return [
             {
                 type: DataType.Texture,
-                texture: loadTGA(this.loadFromURL(url)),
+                texture: loadTGA(await this.loadFromURL(url)),
             }
         ]
     }

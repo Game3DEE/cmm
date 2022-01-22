@@ -55,6 +55,8 @@ async function openFile(url, name) {
                             textureFolder.addFolder(baseName).add({
                                 remove: () => {},
                             }, 'remove')
+                            model.material.map = d.texture
+                            model.material.needsUpdate = true
                             break
                         case DataType.Animation:
                             // Animation dropped, add animation to current model
