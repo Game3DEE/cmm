@@ -3,6 +3,8 @@ import {
     Clock,
     Color,
     GridHelper,
+    MeshBasicMaterial,
+    MeshNormalMaterial,
     PerspectiveCamera,
     Scene,
     WebGLRenderer,
@@ -16,7 +18,7 @@ import { DataType, setupPlugins } from './plugins/index.js'
 let camera, scene, renderer, stats, controls, grid, axes, fileButton
 let clock = new Clock()
 // GUI elements
-let gui, textureFolder, animationsFolder, pluginFolder
+let gui, materialFolder, animationsFolder
 // model info
 let vertCountSpan, faceCountSpan, modelNameSpan
 // plugin data
@@ -24,11 +26,89 @@ let plugins = [], activePlugin
 // active model data
 let model, mixer
 
+const textures = [] // list of currently loaded textures
+
 // Global settings
 const settings = {
     axes: true,
     grid: true,
-    mode: 0,
+    wireframe: false,
+    mode: 1,
+}
+
+function setModel(newModel, plug) {
+    const plugIdx = plugins.indexOf(plug)
+    if (plug.isMode() && plugIdx !== -1) {
+        settings.mode = plugIdx
+    }
+    if (model) scene.remove(model)
+    model = newModel
+
+    activePlugin?.deactivate()
+    activePlugin = plug
+    activePlugin.activate(model)
+
+    if (model) {
+        // TODO: traverse object hierarchy, handled multi-geometry properly
+        vertCountSpan.innerText = model.geometry.attributes.position.count
+        faceCountSpan.innerText = model.geometry.index ? model.geometry.index.count / 3 : model.geometry.attributes.position.count / 3
+        modelNameSpan.innerText = model.name
+        scene.add(model)
+    }
+
+    updateMaterials()
+}
+
+function addNewTextures(newTextures) {
+    const materials = Array.isArray(model.material) ? model.material : [model.material]
+    newTextures.forEach(t => {
+        textures.push(t)
+
+        if (materials.length > 1) {
+            const mIdx = materials.findIndex(m => m.map === undefined || m.map === null)
+            if (mIdx !== -1) {
+                setMaterial(mIdx, t)
+            }
+        } else {
+            setMaterial(0, t)
+        }
+    })
+}
+
+function setMaterial(idx, tex) {
+    const mat = tex ? new MeshBasicMaterial({ map: tex, wireframe: settings.wireframe }) :
+        new MeshNormalMaterial({ wireframe: settings.wireframe })
+
+    if (Array.isArray(model.material)) {
+        mat.name = model.material[idx].name
+        model.material[idx] = mat
+    } else {
+        mat.name = model.material.name
+        model.material = mat
+    }
+}
+
+function updateMaterials() {
+    materialFolder.children.forEach(c => c.destroy())
+
+    if (!model) return
+
+    // Build map of texture names
+    const textureNames = {
+        'none': 0,
+    }
+    textures.forEach((t,i) => textureNames[t.name] = i +1)
+
+    const materials = Array.isArray(model.material) ? model.material : [model.material]
+    materials.forEach((m,mIdx) => {
+        const data = {
+            texture: m.map ? textures.findIndex(t => t.name === m.map.name) +1 : 0,
+        }
+        const folder = materialFolder.addFolder(m.name)
+        folder.add(data, 'texture', textureNames).onChange(tIdx => {
+            setMaterial(mIdx, tIdx > 0 ? textures[tIdx-1] : null)
+        })
+    })
 }
 
 async function openFile(url, name) {
@@ -41,28 +121,30 @@ async function openFile(url, name) {
         const plug = plugins[j]
         if (plug.supportedExtensions().includes(ext)) {
             try {
-                const data = await plug.loadFile(url, fileName)
+                const data = await plug.loadFile(url, ext, baseName)
+                let newModel = null
+                let newTextures = []
                 data.forEach(d => {
                     switch(d.type) {
                         case DataType.Model:
                             // Model dropped, clear UX and active plug as active plugin
-                            if (model) scene.remove(model)
-                            scene.add(d.model)
-                            model = d.model
+                            //setModel(d.model, plug)
+                            newModel = d.model
                             break
                         case DataType.Texture:
                             // Texture dropped, add to texture list
-                            textureFolder.addFolder(baseName).add({
-                                remove: () => {},
-                            }, 'remove')
-                            model.material.map = d.texture
-                            model.material.needsUpdate = true
+                            newTextures.push(d.texture)
                             break
                         case DataType.Animation:
                             // Animation dropped, add animation to current model
                             break
                     }
                 })
+                newModel && setModel(newModel, plug)
+                if (newTextures.length) {
+                    addNewTextures(newTextures)
+                    updateMaterials()
+                }
                 return // plugin loaded file successfully, skip other plugins
             } catch(e) {
                 console.error(`Plugin "${plug.name()}" failed to load "${name}"!`, e)
@@ -85,11 +167,18 @@ function initGUI() {
     const guiFolder = gui.addFolder("GUI")
     guiFolder.add(settings, 'axes').name('Show Axes').onChange(v => axes.visible = v)
     guiFolder.add(settings, 'grid').name('Show Grid').onChange(v => grid.visible = v)
+    guiFolder.add(settings, 'wireframe').listen().onChange(v => {
+        (Array.isArray(model.material) ? model.material : [model.material]).forEach(m => {
+            m.wireframe = v
+            m.needsUpdate = true
+        })
+    })
     guiFolder.close()
 
-    textureFolder = gui.addFolder('Textures')
+    materialFolder = gui.addFolder('Materials')
+    materialFolder.close()
     animationsFolder = gui.addFolder('Animations')
-    pluginFolder = undefined
+    animationsFolder.close()
 }
 
 function initPlugins() {
@@ -103,7 +192,12 @@ function initPlugins() {
         }
     })
 
-    gui.add(settings, 'mode', modes)
+    gui.add(settings, 'mode', modes).listen().onChange(v => {
+        // when the user changes the mode, we trigger an "import" from one plugin to another
+        const newPlug = plugins[v]
+        const newModel = newPlug.convert(model)
+        setModel(newModel, newPlug)
+    })
 }
 
 function init() {

@@ -1,4 +1,4 @@
-export function downloadBlob(data, fileName, mimeType) {
+export function downloadBlob(data, fileName, mimeType = 'application/octet-stream') {
     const blob = new Blob([data], {
       type: mimeType
     })

@@ -8,6 +8,22 @@ export class Plugin {
      // initialize plugin
     constructor(gui) {
         this.gui = gui
+        this.customGui = null
+    }
+
+    // Convert model to fit constraints of plugin format. This includes
+    // combining materials / geometries / textures.
+    convert(model) {
+        return model // by default, just pass 1-on-1
+    }
+
+    // Plugin activated with new model
+    // (always after convert is called; model is just for reference)
+    activate(model) {
+    }
+
+    // Plugin deactivated; clear out custom UI
+    deactivate() {
     }
 
     // if this plugin implements a game "mode", for now it basically
@@ -18,13 +34,13 @@ export class Plugin {
 
     // load one or more types of data
     // can throw on unexpected parsing issues
-    async loadFile(url, name) {
+    async loadFile(url, ext, baseName) {
         throw new Error(`loadFile is not implemented in this plugin!`)
     }
 
     // returns name of plugin
     name() {
-        throw new Error(`Base plugin name() called, please override!`)
+        return 'unknown' // Maybe specify name in constructor?
     }
 
     // return list of supported extensions

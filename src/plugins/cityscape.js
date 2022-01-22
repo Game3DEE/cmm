@@ -15,7 +15,7 @@ import { KaitaiStream } from 'kaitai-struct'
 import MDL from '../kaitai/serious1_mdl.js'
 
 export class CityscapePlugin extends Plugin {
-    async loadFile(url, name) {
+    async loadFile(url, ext, baseName) {
        return await this.loadModel(url)
     }
 

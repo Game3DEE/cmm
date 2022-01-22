@@ -7,7 +7,7 @@ import {
     BufferGeometry,
     Float32BufferAttribute,
     Mesh,
-    MeshBasicMaterial,
+    MeshNormalMaterial,
 } from 'three'
 
 import { DataType, Plugin } from './plugin.js'
@@ -16,14 +16,14 @@ import { KaitaiStream } from 'kaitai-struct'
 import SSM from '../kaitai/primalprey_ssm.js'
 
 export class PrimalPreyPlugin extends Plugin {
-    async loadFile(url, name) {
-        const model = this.loadModel(await this.loadFromURL(url))
+    async loadFile(url, ext, baseName) {
+        const model = this.loadModel(await this.loadFromURL(url), baseName)
         return [
             { type: DataType.Model, model: model },
         ]
     }
 
-    loadModel(buffer) {
+    loadModel(buffer, baseName) {
         const parsed = new SSM(new KaitaiStream(buffer))
         console.log(parsed)
 
@@ -39,8 +39,10 @@ export class PrimalPreyPlugin extends Plugin {
 
         geo.setAttribute('position', new Float32BufferAttribute(position, 3))
         geo.setIndex(index)
+        geo.computeVertexNormals()
 
-        const mesh = new Mesh(geo, new MeshBasicMaterial({ wireframe: true }))
+        const mesh = new Mesh(geo, new MeshNormalMaterial({ }))
+        mesh.name = baseName
 
         console.log(geo)
 
