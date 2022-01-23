@@ -197,7 +197,19 @@ function initPlugins() {
         // when the user changes the mode, we trigger an "import" from one plugin to another
         const newPlug = plugins[v]
         const newModel = newPlug.convert(model)
+        scanForNewTextures(newModel)
         setModel(newModel, newPlug)
+    })
+}
+
+function scanForNewTextures(model) {
+    const materials = Array.isArray(model.material) ? model.material : [model.material]
+    materials.forEach(m => {
+        if (m.map) {
+            if (textures.indexOf(m.map) === -1) {
+                textures.push(m.map)
+            }
+        }
     })
 }
 
