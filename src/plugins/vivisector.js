@@ -110,10 +110,14 @@ export class VivisectorPlugin extends Plugin {
         groups.forEach(({ start, count, materialIndex }) => geo.addGroup(start, count, materialIndex))
 
         const mat = []
-        groups.forEach((g,i) => {
-            const m = new MeshNormalMaterial()
-            m.name = `Material-${i+1}`
-            mat.push(m)
+        const matIndices = []
+        groups.forEach(g => {
+            if (!matIndices.includes(g.materialIndex)) {
+                const m = new MeshNormalMaterial()
+                m.name = `Material-${g.materialIndex}`
+                mat.push(m)
+                matIndices.push(g.materialIndex)
+            }
         })
 
         console.log(geo)
