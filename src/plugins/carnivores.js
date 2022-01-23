@@ -13,7 +13,7 @@ import {
 } from 'three'
 
 import { DataType, Plugin } from './plugin.js'
-import { conv_565, downloadBlob } from '../utils.js'
+import { conv_565, downloadBlob, imgToImageData } from '../utils.js'
 
 // Loaders (all carnivores specific)
 import { load3DF, save3DF } from '../formats/3df.js'
@@ -52,8 +52,85 @@ export class CarnivoresPlugin extends Plugin {
     }
 
     convert(model) {
-        const isMultiMaterial = Array.isArray(model.material) && model.material.length > 1
-        console.log(`model has multiple textures: ${isMultiMaterial}`)
+        const materials = Array.isArray(model.material) ? model.material : [model.material]
+        const textures = []
+        const remapInfo = []
+        materials.forEach(m => {
+            if (m.map && !textures.includes(m.map)) textures.push(m.map)
+        })
+
+        // combine our textures into a single texture
+        let outHeight = 0
+        textures.forEach((t,tIdx) => {
+            const scale = 256 / t.image.width
+            const height = t.image.height * scale
+            remapInfo[tIdx] = {
+                scale,
+                height,
+                offset: outHeight,
+                srcData: imgToImageData(t.image)
+            }
+            outHeight += height
+        })
+        const singleTex = this.scaleAndCombine(remapInfo, outHeight)
+
+        // Update UV
+        const newHeight = singleTex.image.height
+        const { uv } = model.geometry.attributes
+        model.geometry.groups.forEach(g => {
+            const tex = materials[g.materialIndex].map
+            if (tex) {
+                const idx = textures.indexOf(tex)
+                if (idx > -1) {
+                    const rmi = remapInfo[idx]
+                    console.log(`Remapping texture ${textures[idx].name}`, rmi)
+                    // Loop through all vertices in this material
+                    const scale = rmi.height / newHeight
+                    const offset = rmi.offset / newHeight
+                    for (let i = g.start; i < g.start + g.count; i++) {
+                        let v = uv.getY(i) * scale + offset
+                        uv.setY(i, v)
+                    }
+                }
+            }
+        })
+        uv.needsUpdate = true
+        model.geometry.clearGroups()
+        model.material = new MeshBasicMaterial({ map: singleTex })
+        model.material.name = `${model.name}-processed`
+        singleTex.name = `${model.name}-processed`
+
+        // XXX generate userData so export works ;)
+
+        return model
+    }
+
+    scaleAndCombine(remapInfo, outHeight) {
+        // Final output canvas
+        const outCanvas = document.createElement('canvas')
+        outCanvas.width = 256
+        outCanvas.height = outHeight
+        const outCtx = outCanvas.getContext('2d')
+
+        remapInfo.slice().reverse().forEach(rmi => {
+            // Setup and render into temp canvas
+            // XXX TODO see if we can resize one canvas instead of keep generating new ones
+            const tmpCanvas = document.createElement('canvas')
+            tmpCanvas.width = rmi.srcData.width
+            tmpCanvas.height = rmi.srcData.height
+            const tmpCtx = tmpCanvas.getContext('2d')
+            // Render texture into temp canvas
+            tmpCtx.putImageData(rmi.srcData, 0, 0)
+
+            outCtx.scale(rmi.scale, rmi.scale)
+            outCtx.drawImage(tmpCanvas, 0, rmi.offset / rmi.scale)
+            outCtx.setTransform(1, 0, 0, 1, 0, 0) // reset transform
+        })
+
+        //document.getElementById('hack').src = outCanvas.toDataURL()
+
+        const dst = outCtx.getImageData(0,0,outCanvas.width,outCanvas.height)
+        return new DataTexture(dst.data, dst.width, dst.height, RGBAFormat, UnsignedByteType)
     }
 
     async loadFile(url, ext, baseName) {
