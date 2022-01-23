@@ -7,21 +7,21 @@ import {
     MeshBasicMaterial,
     MeshNormalMaterial,
     RGBAFormat,
-    RGBFormat,
     UnsignedByteType,
-    UnsignedShort565Type,
 } from 'three'
 
 import { DataType, Plugin } from './plugin.js'
-import { conv_565, downloadBlob, imgToImageData } from '../utils.js'
+import { downloadBlob, imgToImageData } from '../utils.js'
 
 // Loaders (all carnivores specific)
 import { load3DF, save3DF } from '../formats/3df.js'
 import { load3DN, save3DN } from '../formats/3dn.js'
+import { loadCAR, saveCAR } from '../formats/car.js'
 import { loadANI } from '../formats/ani.js'
-import { loadCAR } from '../formats/car.js'
 import { loadVTL } from '../formats/vtl.js'
 import { loadCRT } from '../formats/crt.js'
+
+import { saveTGA } from '../formats/tga.js'
 
 export class CarnivoresPlugin extends Plugin {
     constructor(gui) {
@@ -32,8 +32,7 @@ export class CarnivoresPlugin extends Plugin {
         this.guiOps = {
             export3DF: () => {
                 const model = this.activeModel.userData.cpmData
-                // TODO: pass texture data
-               const out = save3DF(model)
+                const out = save3DF({ ...model, texture: this.createTexture565(), })
                downloadBlob(out, `${this.activeModel.name}.3df`)
             },
             export3DN: () => {
@@ -45,9 +44,27 @@ export class CarnivoresPlugin extends Plugin {
             exportCAR: () => {
                 const model = this.activeModel.userData.cpmData
                 // TODO: pass texture data (animations?)
-                const out = saveCAR(model)
+                const out = saveCAR({  ...model, texture: this.createTexture565(), })
                 downloadBlob(out, `${this.activeModel.name}.car`)
             },
+            exportTGA32: () => {
+                const tex = this.activeModel?.material?.map
+                if (tex) {
+                    const buf = saveTGA(tex.image) // no need for conversion, on import all textures are 32-bit (RGBA)
+                    downloadBlob(buf, `${tex.name}.tga`)
+                }
+            },
+            exportTGA16: () => {
+                const tex = this.activeModel?.material?.map
+                if (tex) {
+                    const buf = saveTGA({
+                        width: tex.image.width,
+                        height: tex.image.height,
+                        data: this.createTexture565()
+                    }, 16)
+                    downloadBlob(buf, `${tex.name}.tga`)
+                }
+            },            
         }
     }
 
@@ -100,9 +117,70 @@ export class CarnivoresPlugin extends Plugin {
         model.material.name = `${model.name}-processed`
         singleTex.name = `${model.name}-processed`
 
-        // XXX generate userData so export works ;)
+        model.userData.cpmData = this.cpmFromModel(model)
 
         return model
+    }
+
+    // Create model data like Carnivores export functions expect it
+    cpmFromModel(model) {
+        let outModel = {
+            name: model.name,
+            faces: [],
+            vertices: [],
+            bones: [],
+            animations: [],
+            texture: null,
+        }
+
+        const findOrAddVert = (x,y,z) => {
+            for (let i = 0; i < outModel.vertices.length; i++) {
+                const v = outModel.vertices[i].position
+                if (v[0] === x && v[1] === y && v[2] === z) {
+                    return i
+                }
+            }
+
+            const index = outModel.vertices.length
+            outModel.vertices.push({
+                position: [ x, y, z ],
+                bone: 0,
+                hide: 0,
+            })
+
+            return index
+        }
+
+        const { width, height } = model.material.map.image
+        const { position, uv } = model.geometry.attributes
+        // Loop over all triangles
+        for (let i = 0; i < position.count; i += 3) {
+            const indices = []
+            const uvs = []
+            // Get the tree indices (and collect uv while we're at it)
+            for (let j = 0; j < 3; j++) {
+                const x = position.getX(i + j),
+                    y = position.getY(i + j),
+                    z = position.getZ(i + j)
+                indices.push( findOrAddVert(x,y,z) )
+                uvs.push(
+                    Math.floor(uv.getX(i + j) * width),
+                    Math.floor(uv.getY(i + j) * height),
+                )
+            }
+            // Add the face
+            outModel.faces.push({
+                indices,
+                uvs,
+                flags: 0,
+                dmask: 0,
+                distant: 0,
+                next: 0,
+                group: 0,
+            })
+        }
+
+        return outModel
     }
 
     scaleAndCombine(remapInfo, outHeight) {
@@ -127,8 +205,6 @@ export class CarnivoresPlugin extends Plugin {
             outCtx.setTransform(1, 0, 0, 1, 0, 0) // reset transform
         })
 
-        //document.getElementById('hack').src = outCanvas.toDataURL()
-
         const dst = outCtx.getImageData(0,0,outCanvas.width,outCanvas.height)
         return new DataTexture(dst.data, dst.width, dst.height, RGBAFormat, UnsignedByteType)
     }
@@ -148,6 +224,7 @@ export class CarnivoresPlugin extends Plugin {
     deactivate() {
         this.activeModel = null
         this.customGui?.destroy()
+        this.customGui = null
     }
 
     // Called when a plugin is activated; gives it the change to add
@@ -159,8 +236,14 @@ export class CarnivoresPlugin extends Plugin {
             this.customGui.add(this.guiOps, 'export3DF').name('Export 3DF')
             this.customGui.add(this.guiOps, 'export3DN').name('Export 3DN')
             this.customGui.add(this.guiOps, 'exportCAR').name('Export CAR')
+            this.customGui.add(this.guiOps, 'exportTGA32').name('Export 32-bit TGA')
+            this.customGui.add(this.guiOps, 'exportTGA16').name('Export 16-bit TGA')
         }
         this.activeModel = model
+    }
+
+    getExportTexture() {
+
     }
 
     async loadCRT(url, baseName) {
@@ -250,12 +333,15 @@ export class CarnivoresPlugin extends Plugin {
 
     createMeshFromModel(model, tex, baseName) {
         const { animations } = model
-        const totalFrames = animations?.reduce((a,b) => a + b.frameCount, 0)
-
         const morphVertices = []
         const position = []
         const uv = []
-        const index = []
+    
+        // UV dividers
+        const width = tex ? tex.image.width : 256
+        const height = tex ? tex.image.height : 256
+
+        const totalFrames = animations.reduce((a,b) => a + b.frameCount, 0)
 
         if (totalFrames) {
             for (let i = 0; i < totalFrames; i++) {
@@ -263,72 +349,43 @@ export class CarnivoresPlugin extends Plugin {
             }
         }
 
-        const width = tex ? tex.image.width : 256
-        const height = tex ? tex.image.height : 256
+        model.faces.forEach(f => {
+            for (let i = 0; i < 3; i++) {
+                const vIdx = f.indices[i]
+                const v = model.vertices[vIdx]
+                position.push(
+                    v.position[0],
+                    v.position[1],
+                    v.position[2],
+                )
 
-        function findOrAddVert(pos, u, v) {
-            for (let i = 0; i < position.length / 3; i++) {
-                if (pos[0] === position[i*3+0] &&
-                    pos[1] === position[i*3+1] &&
-                    pos[2] === position[i*3+2] &&
-                    u === uv[i*2+0] &&
-                    v === uv[i*2+1]) {
-                    return i
+                if (totalFrames) {
+                    let frIdx = 0
+                    animations.forEach(ani => {
+                        for (let i = 0; i < ani.frameCount; i++) {
+                            const vOff = (i * ani.vertCount + vIdx) * 3
+                            morphVertices[frIdx + i].push(
+                                ani.frames[vOff + 0] / 16, // x
+                                ani.frames[vOff + 1] / 16, // y
+                                ani.frames[vOff + 2] / 16, // z
+                            )
+                        }
+                        frIdx += ani.frameCount
+                    })
                 }
             }
-
-            // did not find a matching vert, so add one
-            const vIdx = position.length / 3
-            position.push(pos[0], pos[1], pos[2])
-            uv.push(u, v)
-
-            if (totalFrames) {
-                let frIdx = 0
-                animations.forEach(ani => {
-                    for (let i = 0; i < ani.frameCount; i++) {
-                        const vOff = (i * ani.vertCount + vIdx) * 3
-                        morphVertices[frIdx + i].push(
-                            ani.frames[vOff + 0] / 16, // x
-                            ani.frames[vOff + 1] / 16, // y
-                            ani.frames[vOff + 2] / 16, // z
-                        )
-                    }
-                    frIdx += ani.frameCount
-                })
-            }
-
-            return vIdx
-        }
-
-        model.faces.forEach(f => {
-            const a = f.indices[0]
-            const b = f.indices[1]
-            const c = f.indices[2]
-
-            const aIdx = findOrAddVert(model.vertices[a].position, f.uvs[0] / width, f.uvs[1] / height)
-            const bIdx = findOrAddVert(model.vertices[b].position, f.uvs[2] / width, f.uvs[3] / height)
-            const cIdx = findOrAddVert(model.vertices[c].position, f.uvs[4] / width, f.uvs[5] / height)
-            index.push(aIdx, bIdx, cIdx)
+            uv.push(
+                f.uvs[0] / width, f.uvs[1] / height,
+                f.uvs[2] / width, f.uvs[3] / height,
+                f.uvs[4] / width, f.uvs[5] / height,
+            )
         })
-    
-        console.log(model)
-
-        let min = Number.MAX_VALUE, max = Number.MIN_VALUE
-        position.forEach((v,i) => {
-            min = Math.min(min, v)
-            max = Math.max(max, v)
-            if (isNaN(v)) {
-                console.log(`position ${i} has NaN value`)
-            }
-        })
-        console.log(min, max, position.length / 3)
 
         const geo = new BufferGeometry()
         geo.setAttribute('position', new Float32BufferAttribute(position, 3))
         geo.setAttribute('uv', new Float32BufferAttribute(uv, 2))
-        geo.setIndex(index)
         geo.computeVertexNormals()
-    
+
         if (totalFrames) {
             // Add animation data
             geo.morphAttributes.position = []
@@ -342,15 +399,10 @@ export class CarnivoresPlugin extends Plugin {
                 frIdx += ani.frameCount
             })
         }
-    
-        const mat = tex ?
-            new MeshBasicMaterial({ map: tex, alphaTest: 0.5, transparent: true }) :
-            new MeshNormalMaterial({ })
-    
-        mat.name = baseName
+
+        const mat = tex ? new MeshBasicMaterial({ map: tex }) : new MeshNormalMaterial()
 
         let obj = new Mesh(geo, mat)
-        obj.name = model.name
         if (totalFrames) {
             animations.forEach(ani => {
                 const seq = []
@@ -376,22 +428,51 @@ export class CarnivoresPlugin extends Plugin {
         return obj
     }
 
+    createTexture565() {
+        let tex = this.activeModel?.material?.map
+
+        // bail out if no current texture
+        if (!tex) return undefined
+    
+        // Convert 32-bit RGBA texture to RGB565 texture
+        const { width, height, data } = tex.image
+        const texture = new Uint16Array(width * height)
+        for (let i = 0; i < data.length; i++) {
+            let r = (data[i*4 +0] >>> 3) & 0x1f
+            let g = (data[i*4 +1] >>> 3) & 0x1f
+            let b = (data[i*4 +2] >>> 3) & 0x1f
+            let a = (data[i*4 +3] != 0) ? 0x8000 : 0
+            texture[i] = a | (r << 10) | (g << 5) | b
+        }
+    
+        return texture
+    }
+
     // helper function
     convertTexture(texture, textureBytes, baseName) {
         // Bail out early if we have no texture data
         if (!textureBytes) {
-            return null
+            tex = null
+            return
         }
 
         const width = 256
         const height = (textureBytes / 2) / width
-        const data = new Uint16Array(width * height)
+        const data = new Uint8ClampedArray(width * height * 4)
 
         for (let i = 0; i < texture.length; i++) {
-            data[i] = conv_565(texture[i])
+            let pixel = texture[i]
+            let r = ((pixel >>> 10) & 0x1f);
+            let g = ((pixel >>>  5) & 0x1f);
+            let b = ((pixel >>>  0) & 0x1f);
+        
+            data[i*4 +0] = r << 3;
+            data[i*4 +1] = g << 3;
+            data[i*4 +2] = b << 3;
+            data[i*4 +3] = 255
         }
 
-        const tex = new DataTexture(data, width, height, RGBFormat, UnsignedShort565Type)
+        const tex = new DataTexture(data, width, height, RGBAFormat, UnsignedByteType)
         tex.name = baseName
 
         return tex
