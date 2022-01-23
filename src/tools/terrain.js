@@ -11,8 +11,6 @@ const baseName = path.basename(fname, '.MAP')
 const dirName = path.dirname(fname)
 const rscName = path.join(dirName, baseName + '.RSC')
 
-console.log(fname, rscName)
-
 const mapBuf = fs.readFileSync(fname)
 const rscBuf = fs.readFileSync(rscName)
 

@@ -41,8 +41,6 @@ export class DDSPlugin extends Plugin {
           BlockDecompressImageDXT1(mip.width, mip.height, mip.data.buffer, mip.data.byteOffset, newData)
           mip.data = newData
           info.format = RGBAFormat
-      } else {
-          console.log(info.format)
       }
 
       const tex = new DataTexture(mip.data, mip.width, mip.height, info.format, UnsignedByteType)

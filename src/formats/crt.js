@@ -14,8 +14,6 @@ export function loadCRT(buffer) {
         offset += bytesPerPixel
     }
 
-    console.log(width, height, data)
-
     return {
         width,
         height,

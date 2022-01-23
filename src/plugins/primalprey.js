@@ -2,8 +2,8 @@
 //  - add animation support
 
 import {
+    AnimationClip,
     BufferGeometry,
-    DoubleSide,
     Float32BufferAttribute,
     Mesh,
     MeshNormalMaterial,
@@ -26,7 +26,6 @@ export class PrimalPreyPlugin extends Plugin {
 
     loadModel(buffer, baseName) {
         const parsed = new SSM(new KaitaiStream(buffer))
-        console.log(parsed)
 
         const geo = new BufferGeometry()
         const position = []
@@ -34,7 +33,9 @@ export class PrimalPreyPlugin extends Plugin {
         const vertices = parsed.frames[0].vertices
         const groups = [] // { start, count, materialIndex }
         let meshId = -1
+        const mapping = [] // geometry vertices to data vertices
         parsed.faces.forEach(f => {
+            // Build material groups
             if (f.meshId != meshId) {
                 if (meshId != -1) {
                     const grp = groups[groups.length-1]
@@ -49,6 +50,7 @@ export class PrimalPreyPlugin extends Plugin {
                 vertices[b].x * scale, vertices[b].z * scale, vertices[b].y * scale,
                 vertices[c].x * scale, vertices[c].z * scale, vertices[c].y * scale,
             )
+            mapping.push(a, b, c)
             uv.push(
                 f.uvs[0], f.uvs[1],
                 f.uvs[2], f.uvs[3],
@@ -57,8 +59,6 @@ export class PrimalPreyPlugin extends Plugin {
         })
         const grp = groups[groups.length-1]
         grp.count = (position.length / 3) - grp.start
-
-        console.log(groups)
 
         geo.setAttribute('position', new Float32BufferAttribute(position, 3))
         geo.setAttribute('uv', new Float32BufferAttribute(uv, 2))
@@ -72,10 +72,50 @@ export class PrimalPreyPlugin extends Plugin {
             mat.push(m)
         })
 
+        // Build frame list based on unrolled faces
+        const frames = []
+        parsed.frames.forEach(frm => {
+            const frame = []
+            mapping.forEach(m => {
+                frame.push(
+                    frm.vertices[m].x * scale,
+                    frm.vertices[m].z * scale,
+                    frm.vertices[m].y * scale,
+                )
+            })
+            frames.push(frame)
+        })
+
+        // Setup the actual animation data
+        const clips = []
+        if (parsed.animations.length) {
+            geo.morphAttributes.position = []
+            parsed.animations.forEach(ani => {
+                const seq = []
+                ani.frameIndices.forEach((fr,i) => {
+                    const attr = new Float32BufferAttribute(frames[fr], 3)
+                    attr.name = `${ani.name}.${i}`
+                    seq.push({
+                        name: attr.name,
+                        vertices: [],
+                    })
+                    geo.morphAttributes.position.push(attr)
+                })
+                const duration = ani.frameDurations.reduce((a,b) => a+b, 0)
+                const fps = ani.frameIndices.length / duration
+                clips.push(
+                    AnimationClip.CreateFromMorphTargetSequence(
+                    `${ani.name}`,
+                    seq,
+                    fps,
+                    false /*noLoop*/ )
+                )
+            })
+        }
+
         const mesh = new Mesh(geo, mat)
         mesh.name = baseName
-
-        console.log(geo)
+        mesh.animations = clips
 
         return mesh
     }

@@ -213,8 +213,8 @@ export class CarnivoresPlugin extends Plugin {
             case '3df': return await this.load3DF(url, baseName)
             case 'car': return await this.loadCAR(url, baseName)
             case '3dn': return await this.load3DN(url, baseName)
-            case 'vtl': return await this.loadVTL(url, baseName)
-            case 'ani': return await this.loadVTL(url, baseName)
+            case 'vtl': return this.activeModel ? await this.loadVTL(url, baseName) : []
+            case 'ani': return this.activeModel ? await this.loadVTL(url, baseName) : []
             case 'crt': return await this.loadCRT(url, baseName)
         }
     }
@@ -302,16 +302,33 @@ export class CarnivoresPlugin extends Plugin {
 
     async loadVTL(url) {
         const data = loadVTL(await this.loadFromURL(url))
-        return [
-            { 'type': DataType.Animation, animation: data },
-        ]
+        const anim = this.generateAnimation(data)
+        return anim ? [
+            { 'type': DataType.Animation, animation: anim },
+        ] : []
     }
 
     async loadANI(url) {
         const data = loadANI(await this.loadFromURL(url))
-        return [
-            { 'type': DataType.Animation, animation: data },
-        ]
+        const anim = this.generateAnimation(data)
+        return anim ? [
+            { 'type': DataType.Animation, animation: anim },
+        ] : []
+    }
+
+    generateAnimation(data) {
+        const { cpmData } = model.userData
+        // If animation doesn't match model, forget about it
+        if (cpmData.vertices.length !== data.vertCount) {
+            return null
+        }
+        /*
+        fps
+        vertCount
+        frameCount
+        frames
+        */
+        return null
     }
 
     isMode() {

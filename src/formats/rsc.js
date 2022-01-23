@@ -119,7 +119,6 @@ export function loadRSC(buffer, version) {
   for (let i = 0; i < ambientSoundCount; i++) {
       const pcmSize = dv.getUint32(offset, true)
       offset += 4
-      console.log(i, pcmSize)
       let ambSound = new Uint8ClampedArray(buffer, offset, pcmSize)
       offset += pcmSize
 

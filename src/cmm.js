@@ -1,4 +1,5 @@
 import {
+    AnimationMixer,
     AxesHelper,
     Clock,
     Color,
@@ -35,6 +36,7 @@ const settings = {
     grid: true,
     wireframe: false,
     mode: 1,
+    animation: 0,
 }
 
 function setModel(newModel, plug) {
@@ -55,9 +57,14 @@ function setModel(newModel, plug) {
         faceCountSpan.innerText = model.geometry.index ? model.geometry.index.count / 3 : model.geometry.attributes.position.count / 3
         modelNameSpan.innerText = model.name
         scene.add(model)
+
+        mixer = new AnimationMixer(model)
     }
 
     updateMaterials()
+    updateAnimations()
+
+    console.log(model)
 }
 
 function addNewTextures(newTextures) {
@@ -88,6 +95,36 @@ function setMaterial(idx, tex) {
         mat.name = model.material.name
         model.material = mat
     }
+}
+
+function updateAnimations() {
+    animationsFolder.children.slice().forEach(c => c.destroy())
+
+    if (!model) return
+
+    const animations = { 'none': 0 }
+    model.animations.forEach((ani,aIdx) => {
+        animations[ani.name] = aIdx +1
+    })
+
+    animationsFolder.add(settings, 'animation', animations).onChange(v => {
+        mixer.stopAllAction()
+        if (v) {
+            mixer.clipAction(model.animations[v-1]).play()
+        }
+    })
+    const ctx = {
+        remove: () => {
+            mixer.stopAllAction()
+            if (settings.animation) {
+                const idx = settings.animation -1
+                model.animations.splice(idx, 1)
+                settings.animation = 0
+                updateAnimations()
+            }
+        }
+    }
+    animationsFolder.add(ctx, 'remove')
 }
 
 function updateMaterials() {

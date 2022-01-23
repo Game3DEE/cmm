@@ -17,8 +17,6 @@ export function initHud(compass, wind, renderer) {
     const size = new Vector2()
     renderer.getSize(size)
 
-    console.log('render size:', size)
-
     const { geometry, material } = createObject(compass)
     compassMesh = new Mesh(geometry, material)
 

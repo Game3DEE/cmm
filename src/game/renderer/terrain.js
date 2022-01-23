@@ -77,7 +77,6 @@ export function createTextureAtlas(rsc) {
 
     // Done! Now simply create a ThreeJS texture from the data
     const tex = new THREE.DataTexture(data, atlasSize, atlasSize, THREE.RGBFormat, THREE.UnsignedShort565Type)
-    console.log(rsc.textureCount, textureDim, atlasSize, tex)
     tex.needsUpdate = true
 
     return tex;
