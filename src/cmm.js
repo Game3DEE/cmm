@@ -2,6 +2,7 @@ import {
     AxesHelper,
     Clock,
     Color,
+    DoubleSide,
     GridHelper,
     MeshBasicMaterial,
     MeshNormalMaterial,
@@ -76,8 +77,9 @@ function addNewTextures(newTextures) {
 }
 
 function setMaterial(idx, tex) {
-    const mat = tex ? new MeshBasicMaterial({ map: tex, wireframe: settings.wireframe }) :
-        new MeshNormalMaterial({ wireframe: settings.wireframe })
+    // Remove Doubleside or make optional?
+    const mat = tex ? new MeshBasicMaterial({ map: tex, side: DoubleSide, wireframe: settings.wireframe }) :
+        new MeshNormalMaterial({  side: DoubleSide, wireframe: settings.wireframe })
 
     if (Array.isArray(model.material)) {
         mat.name = model.material[idx].name
@@ -89,7 +91,7 @@ function setMaterial(idx, tex) {
 }
 
 function updateMaterials() {
-    materialFolder.children.forEach(c => c.destroy())
+    materialFolder.children.slice().forEach(c => c.destroy())
 
     if (!model) return
 
@@ -128,7 +130,6 @@ async function openFile(url, name) {
                     switch(d.type) {
                         case DataType.Model:
                             // Model dropped, clear UX and active plug as active plugin
-                            //setModel(d.model, plug)
                             newModel = d.model
                             break
                         case DataType.Texture:
@@ -272,4 +273,4 @@ function render() {
 
 init()
 render()
-openFile('saurophaganax.car', 'saurophaganax.car')
+openFile('BRONTORNIS2.car', 'BRONTORNIS2.car')

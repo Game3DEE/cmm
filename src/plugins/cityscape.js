@@ -7,7 +7,7 @@ import {
     BufferGeometry,
     Float32BufferAttribute,
     Mesh,
-    MeshBasicMaterial,
+    MeshNormalMaterial,
 } from 'three'
 
 import { DataType, Plugin } from './plugin.js'
@@ -16,15 +16,20 @@ import MDL from '../kaitai/serious1_mdl.js'
 
 export class CityscapePlugin extends Plugin {
     async loadFile(url, ext, baseName) {
-       return await this.loadModel(url)
+       return await this.loadModel(url, baseName)
     }
 
-    async loadModel(url) {
+    async loadModel(url, baseName) {
         const parsed = new MDL(new KaitaiStream(await this.loadFromURL(url)))
+        const mipInfo = parsed.mipInfo[0]
         const index = []
-        parsed.mipInfo[0].polygons.forEach(p => {
+
+        console.log(mipInfo)
+
+        mipInfo.polygons.forEach(p => {
             if (p.vertexCount != 3) throw new Error(`MDL: No support for non-triangles yet`)
             p.vertices.forEach(v => index.push(v.transformedVertex))
+            // v.textureVertex into mipInfo.textureVertices[].
         })
         const position = []
         parsed.mainMipVertices.forEach(v => {
@@ -35,8 +40,12 @@ export class CityscapePlugin extends Plugin {
         let geo = new BufferGeometry()
         geo.setAttribute('position', new Float32BufferAttribute(position, 3))
         geo.setIndex(index)
+        geo.computeVertexNormals()
 
-        const mesh = new Mesh(geo, new MeshBasicMaterial({ wireframe: true }))
+        const mat = new MeshNormalMaterial()
+        mat.name = baseName
+        const mesh = new Mesh(geo, mat)
+        mesh.name = baseName
 
         return [{
             type: DataType.Model, model: mesh,

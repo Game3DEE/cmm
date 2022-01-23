@@ -1,10 +1,9 @@
 // TODO:
-//  - add uv support
 //  - add animation support
-//  - check one-off or so in triangles?
 
 import {
     BufferGeometry,
+    DoubleSide,
     Float32BufferAttribute,
     Mesh,
     MeshNormalMaterial,
@@ -29,19 +28,49 @@ export class PrimalPreyPlugin extends Plugin {
 
         const geo = new BufferGeometry()
         const position = []
-        const index = []
+        const uv = []
+        const vertices = parsed.frames[0].vertices
+        const groups = [] // { start, count, materialIndex }
+        let meshId = -1
         parsed.faces.forEach(f => {
-            index.push.apply(index, f.vertices)
+            if (f.meshId != meshId) {
+                if (meshId != -1) {
+                    const grp = groups[groups.length-1]
+                    grp.count = (position.length / 3) - grp.start
+                }
+                groups.push({ start: position.length / 3, count: -1, materialIndex: groups.length })
+                meshId = f.meshId
+            }
+            const a = f.vertices[0], b = f.vertices[1], c = f.vertices[2]
+            position.push(
+                vertices[a].x, vertices[a].y, vertices[a].z,
+                vertices[b].x, vertices[b].y, vertices[b].z,
+                vertices[c].x, vertices[c].y, vertices[c].z,               
+            )
+            uv.push(
+                f.uvs[0], f.uvs[1],
+                f.uvs[2], f.uvs[3],
+                f.uvs[4], f.uvs[5],
+            )
         })
-        parsed.frames[0].vertices.forEach(v => {
-            position.push(v.x, v.y, v.z)
-        })
+        const grp = groups[groups.length-1]
+        grp.count = (position.length / 3) - grp.start
+
+        console.log(groups)
 
         geo.setAttribute('position', new Float32BufferAttribute(position, 3))
-        geo.setIndex(index)
+        geo.setAttribute('uv', new Float32BufferAttribute(uv, 2))
+        groups.forEach(({ start, count, materialIndex }) => geo.addGroup(start, count, materialIndex))
         geo.computeVertexNormals()
 
-        const mesh = new Mesh(geo, new MeshNormalMaterial({ }))
+        const mat = []
+        groups.forEach(g => {
+            const m = new MeshNormalMaterial({ side: DoubleSide })
+            m.name = parsed.objects[g.materialIndex].name
+            mat.push(m)
+        })
+
+        const mesh = new Mesh(geo, mat)
         mesh.name = baseName
 
         console.log(geo)
