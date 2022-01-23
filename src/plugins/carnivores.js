@@ -242,10 +242,6 @@ export class CarnivoresPlugin extends Plugin {
         this.activeModel = model
     }
 
-    getExportTexture() {
-
-    }
-
     async loadCRT(url, baseName) {
         const crt = loadCRT(await this.loadFromURL(url))
         const tex = new DataTexture(crt.data, crt.width, crt.height, RGBAFormat, UnsignedByteType)
@@ -341,7 +337,7 @@ export class CarnivoresPlugin extends Plugin {
         const width = tex ? tex.image.width : 256
         const height = tex ? tex.image.height : 256
 
-        const totalFrames = animations.reduce((a,b) => a + b.frameCount, 0)
+        const totalFrames = animations?.reduce((a,b) => a + b.frameCount, 0)
 
         if (totalFrames) {
             for (let i = 0; i < totalFrames; i++) {
@@ -422,6 +418,7 @@ export class CarnivoresPlugin extends Plugin {
             })
         }
         
+        mat.name = model.name || baseName
         obj.name = model.name || baseName
         obj.userData.cpmData = model
 
