@@ -151,7 +151,6 @@ export class CarnivoresPlugin extends Plugin {
             return index
         }
 
-        const { width, height } = model.material.map.image
         const { position, uv } = model.geometry.attributes
         // Loop over all triangles
         for (let i = 0; i < position.count; i += 3) {
@@ -164,8 +163,8 @@ export class CarnivoresPlugin extends Plugin {
                     z = position.getZ(i + j)
                 indices.push( findOrAddVert(x,y,z) )
                 uvs.push(
-                    Math.floor(uv.getX(i + j) * width),
-                    Math.floor(uv.getY(i + j) * height),
+                    Math.floor(uv.getX(i + j) * 256),
+                    Math.floor(uv.getY(i + j) * 256),
                 )
             }
             // Add the face
@@ -286,7 +285,7 @@ export class CarnivoresPlugin extends Plugin {
 
         if (tex) { // we could have a zero byte texture
             result.push({
-                'type': DataType.Texture,
+                type: DataType.Texture,
                 texture: tex,
             })
         }
@@ -333,10 +332,6 @@ export class CarnivoresPlugin extends Plugin {
         const position = []
         const uv = []
     
-        // UV dividers
-        const width = tex ? tex.image.width : 256
-        const height = tex ? tex.image.height : 256
-
         const totalFrames = animations?.reduce((a,b) => a + b.frameCount, 0)
 
         if (totalFrames) {
@@ -371,9 +366,9 @@ export class CarnivoresPlugin extends Plugin {
                 }
             }
             uv.push(
-                f.uvs[0] / width, f.uvs[1] / height,
-                f.uvs[2] / width, f.uvs[3] / height,
-                f.uvs[4] / width, f.uvs[5] / height,
+                f.uvs[0] / 256, f.uvs[1] / 256,
+                f.uvs[2] / 256, f.uvs[3] / 256,
+                f.uvs[4] / 256, f.uvs[5] / 256,
             )
         })
 
