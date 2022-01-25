@@ -1,3 +1,6 @@
+// TODO:
+// - Add support for animation export
+
 import {
     AnimationClip,
     BufferGeometry,
