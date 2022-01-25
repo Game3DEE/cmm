@@ -9,7 +9,7 @@ import {
 } from 'three'
 
 export class TGAPlugin extends Plugin {
-    async loadFile(url, name) {
+    async loadFile(url, ext, baseName) {
         return [
             {
                 type: DataType.Texture,
