@@ -179,7 +179,14 @@ types:
       - id: up_vertex
         type: u4
       - id: relative_placement
-        type: u4
+        type: placement
+
+  placement:
+    seq:
+      - id: position
+        type: vector3f
+      - id: angle
+        type: vector3f
 
   collision_box:
     seq:

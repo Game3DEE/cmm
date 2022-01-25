@@ -359,6 +359,22 @@ var Av17Block = Serious1Mdl.Av17Block = (function() {
   return Av17Block;
 })();
 
+var Placement = Serious1Mdl.Placement = (function() {
+  function Placement(_io, _parent, _root) {
+    this._io = _io;
+    this._parent = _parent;
+    this._root = _root || this;
+
+    this._read();
+  }
+  Placement.prototype._read = function() {
+    this.position = new Vector3f(this._io, this, this._root);
+    this.angle = new Vector3f(this._io, this, this._root);
+  }
+
+  return Placement;
+})();
+
 var Animation = Serious1Mdl.Animation = (function() {
   function Animation(_io, _parent, _root) {
     this._io = _io;
@@ -416,7 +432,7 @@ var AttachedPosition = Serious1Mdl.AttachedPosition = (function() {
     this.centerVertex = this._io.readU4le();
     this.frontVertex = this._io.readU4le();
     this.upVertex = this._io.readU4le();
-    this.relativePlacement = this._io.readU4le();
+    this.relativePlacement = new Placement(this._io, this, this._root);
   }
 
   return AttachedPosition;
