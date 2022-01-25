@@ -121,7 +121,7 @@ export function saveCAR(model) {
     }
     offset += 24
 
-    let msc = 'msc:1337'
+    let msc = 'cmm:1337'
     for (let j = 0; j < 8; j++) {
         let c = j < msc.length ? msc.charCodeAt(j) : 0
         dv.setUint8(offset + j, c)

@@ -1,5 +1,5 @@
 // TODO:
-//  - add animation support
+//  - remove "Normal" material
 
 import {
     AnimationClip,

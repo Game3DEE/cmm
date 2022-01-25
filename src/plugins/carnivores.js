@@ -37,14 +37,12 @@ export class CarnivoresPlugin extends Plugin {
             },
             export3DN: () => {
                 const model = this.activeModel.userData.cpmData
-                // TODO: pass texture data
                 const out = save3DN(model)
                 downloadBlob(out, `${this.activeModel.name}.3dn`)
             },
             exportCAR: () => {
                 const model = this.activeModel.userData.cpmData
-                // TODO: pass texture data (animations?)
-                const out = saveCAR({  ...model, texture: this.createTexture565(), })
+                const out = saveCAR({  ...model, animations: this.convertAnimations(), texture: this.createTexture565(), })
                 downloadBlob(out, `${this.activeModel.name}.car`)
             },
             exportTGA32: () => {
@@ -119,6 +117,21 @@ export class CarnivoresPlugin extends Plugin {
 
         model.userData.cpmData = this.cpmFromModel(model)
 
+        // Convert animation data
+        // (Since it will be scaled down to 16-bit signed integers, 
+        // scale values now, so animations will look as they will after export)
+        const { position } = model.geometry.morphAttributes
+        position?.forEach(attr => {
+            for (let i = 0; i < attr.array.length; i++) {
+                const v = Math.floor(attr.array[i] * 16) / 16
+                attr.array[i] = v
+            }
+            attr.needsUpdate = true
+        })
+
+        model.updateMorphTargets()
+
+
         return model
     }
 
@@ -132,6 +145,8 @@ export class CarnivoresPlugin extends Plugin {
             animations: [],
             texture: null,
         }
+
+        const mapping = []
 
         const findOrAddVert = (x,y,z) => {
             for (let i = 0; i < outModel.vertices.length; i++) {
@@ -161,7 +176,9 @@ export class CarnivoresPlugin extends Plugin {
                 const x = position.getX(i + j),
                     y = position.getY(i + j),
                     z = position.getZ(i + j)
-                indices.push( findOrAddVert(x,y,z) )
+                const vIdx = findOrAddVert(x,y,z)
+                indices.push( vIdx )
+                mapping.push( vIdx )
                 uvs.push(
                     Math.floor(uv.getX(i + j) * 256),
                     Math.floor(uv.getY(i + j) * 256),
@@ -178,6 +195,8 @@ export class CarnivoresPlugin extends Plugin {
                 group: 0,
             })
         }
+
+        outModel.mapping = mapping
 
         return outModel
     }
@@ -357,6 +376,7 @@ export class CarnivoresPlugin extends Plugin {
             }
         }
 
+        const mapping = []
         model.faces.forEach(f => {
             for (let i = 0; i < 3; i++) {
                 const vIdx = f.indices[i]
@@ -366,6 +386,7 @@ export class CarnivoresPlugin extends Plugin {
                     v.position[1],
                     v.position[2],
                 )
+                mapping.push(vIdx)
 
                 if (totalFrames) {
                     let frIdx = 0
@@ -432,9 +453,69 @@ export class CarnivoresPlugin extends Plugin {
         
         mat.name = model.name || baseName
         obj.name = model.name || baseName
+        model.mapping = mapping
         obj.userData.cpmData = model
 
         return obj
+    }
+
+    convertAnimations() {
+        console.log(this.activeModel)
+        const { cpmData } = this.activeModel.userData
+        const { mapping } = cpmData
+        const { position } = this.activeModel.geometry.morphAttributes
+        const animations = []
+
+        if (!cpmData || !mapping || !position) {
+            return undefined
+        }
+
+        let name = ''
+        let frames = []
+        let frameCount = 0
+        position.forEach(attr => {
+            const m = attr.name.match(/^(.+)\.([0-9]+)$/i)
+            if (m) {
+                const animName = m[1]
+                const animFrame = m[2]
+                if (animName !== name) {
+                    if (name.length) {
+                        animations.push({
+                            name,
+                            frameCount,
+                            frames,
+                            fps: 12,
+                        })
+                    }
+                    name = animName
+                    frames = []
+                    frameCount = 0
+                }
+                let frame = []
+                for (let i = 0; i < attr.count; i++) {
+                    const targetVIdx = mapping[i]
+                    frame[targetVIdx*3 + 0] = Math.floor(attr.array[i*3+0] * 16)
+                    frame[targetVIdx*3 + 1] = Math.floor(attr.array[i*3+1] * 16)
+                    frame[targetVIdx*3 + 2] = Math.floor(attr.array[i*3+2] * 16)
+                }
+                frames.push.apply(frames, frame)
+                frameCount++
+                console.log(cpmData.vertices.length, frame.length)
+            } else {
+                console.error(`Could not parse name "${attr.name}"`)
+            }
+        })
+
+        if (frames.length) {
+            animations.push({
+                name,
+                frameCount,
+                frames,
+                fps: 12, // TODO: get fps from somewhere
+            })
+        }
+
+        return animations
     }
 
     createTexture565() {
