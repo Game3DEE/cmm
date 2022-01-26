@@ -1,5 +1,5 @@
 // TODO:
-// - Add support for animation export
+// - Add support for animation loading
 
 import {
     AnimationClip,
@@ -20,8 +20,8 @@ import { downloadBlob, imgToImageData } from '../utils.js'
 import { load3DF, save3DF } from '../formats/3df.js'
 import { load3DN, save3DN } from '../formats/3dn.js'
 import { loadCAR, saveCAR } from '../formats/car.js'
-import { loadANI } from '../formats/ani.js'
-import { loadVTL } from '../formats/vtl.js'
+import { loadANI, saveANI } from '../formats/ani.js'
+import { loadVTL, saveVTL } from '../formats/vtl.js'
 import { loadCRT } from '../formats/crt.js'
 
 import { saveTGA } from '../formats/tga.js'
@@ -67,6 +67,27 @@ export class CarnivoresPlugin extends Plugin {
                 }
             },            
         }
+        const self = this
+        this.animationOpts = {
+            'export VTL': function() {
+                if (this.current) { // an animation is active
+                    const anim = self.convertAnimation(this.current-1)
+                    console.log(anim)
+                    downloadBlob(saveVTL(anim), `${anim.name}.vtl`)
+                }
+            },
+            'export ANI': function() {
+                if (this.current) { // an animation is active
+                    const anim = self.convertAnimation(this.current-1)
+                    console.log(anim)
+                    downloadBlob(saveANI(anim), `${anim.name}.ani`)
+                }
+            },
+        }
+    }
+
+    animationOptions() {
+        return this.animationOpts
     }
 
     convert(model) {
@@ -339,7 +360,7 @@ export class CarnivoresPlugin extends Plugin {
     }
 
     generateAnimation(data) {
-        const { cpmData } = model.userData
+        const { cpmData } = this.activeModel.userData
         // If animation doesn't match model, forget about it
         if (cpmData.vertices.length !== data.vertCount) {
             return null
@@ -463,70 +484,49 @@ export class CarnivoresPlugin extends Plugin {
         return obj
     }
 
-    convertAnimations() {
+    convertAnimation(idx) {
         const { cpmData } = this.activeModel.userData
         const { mapping } = cpmData
         const { position } = this.activeModel.geometry.morphAttributes
-        const animations = []
 
-        if (!cpmData || !mapping || !position) {
-            return undefined
+        const cmmAnim = this.activeModel.animations[idx]
+
+        // Get first frame index
+        let frameIndex = position.findIndex(attr => attr.name === `${cmmAnim.name}.0`)
+        if (frameIndex === -1) {
+            return undefined // bail if not found
         }
 
-        const lookupFPS = animName => {
-            const anim = this.activeModel.animations.find(ani => ani.name === animName)
-            if (anim) {
-                return anim.userData.fps
-            }
-
-            return 0
-        }
-
-        let name = ''
-        let frames = []
+        const frames = []
         let frameCount = 0
-        position.forEach(attr => {
-            const m = attr.name.match(/^(.+)\.([0-9]+)$/i)
-            if (m) {
-                const animName = m[1]
-                const animFrame = m[2]
-                if (animName !== name) {
-                    if (name.length) {
-                        animations.push({
-                            name,
-                            frameCount,
-                            frames,
-                            fps: lookupFPS(name),
-                        })
-                    }
-                    name = animName
-                    frames = []
-                    frameCount = 0
-                }
-                let frame = []
-                for (let i = 0; i < attr.count; i++) {
-                    const targetVIdx = mapping[i]
-                    frame[targetVIdx*3 + 0] = Math.floor(attr.array[i*3+0] * 16)
-                    frame[targetVIdx*3 + 1] = Math.floor(attr.array[i*3+1] * 16)
-                    frame[targetVIdx*3 + 2] = Math.floor(attr.array[i*3+2] * 16)
-                }
-                frames.push.apply(frames, frame)
-                frameCount++
-            } else {
-                console.error(`Could not parse name "${attr.name}"`)
+        // Add all frames to animation
+        do {
+            const attr = position[frameIndex]
+            const frame = []
+            for (let i = 0; i < attr.count; i++) {
+                const targetVIdx = mapping[i]
+                frame[targetVIdx*3 + 0] = Math.floor(attr.array[i*3+0] * 16)
+                frame[targetVIdx*3 + 1] = Math.floor(attr.array[i*3+1] * 16)
+                frame[targetVIdx*3 + 2] = Math.floor(attr.array[i*3+2] * 16)
             }
-        })
+            frames.push.apply(frames, frame)
+            frameCount++
+            frameIndex++
+        } while(frameIndex < position.length &&
+                position[frameIndex].name === `${cmmAnim.name}.${frameCount}`)
 
-        if (frames.length) {
-            animations.push({
-                name,
-                frameCount,
-                frames,
-                fps: 12, // TODO: get fps from somewhere
-            })
+        return {
+            name: cmmAnim.name,
+            frameCount: frameCount,
+            vertCount: cpmData.vertices.length,
+            frames,
+            fps: cmmAnim.userData.fps,
         }
+    }
 
-        return animations
+    convertAnimations() {
+        const anims = this.activeModel.animations.map((_,i) => this.convertAnimation(i))
+        return anims
     }
 
     createTexture565() {
