@@ -98,46 +98,48 @@ export class CarnivoresPlugin extends Plugin {
             if (m.map && !textures.includes(m.map)) textures.push(m.map)
         })
 
-        // combine our textures into a single texture
-        let outHeight = 0
-        textures.forEach((t,tIdx) => {
-            const scale = 256 / t.image.width
-            const height = t.image.height * scale
-            remapInfo[tIdx] = {
-                scale,
-                height,
-                offset: outHeight,
-                srcData: imgToImageData(t.image)
-            }
-            outHeight += height
-        })
-        const singleTex = this.scaleAndCombine(remapInfo, outHeight)
+        if (textures.length) {
+            // combine our textures into a single texture
+            let outHeight = 0
+            textures.forEach((t,tIdx) => {
+                const scale = 256 / t.image.width
+                const height = t.image.height * scale
+                remapInfo[tIdx] = {
+                    scale,
+                    height,
+                    offset: outHeight,
+                    srcData: imgToImageData(t.image)
+                }
+                outHeight += height
+            })
+            const singleTex = this.scaleAndCombine(remapInfo, outHeight)
 
-        // Update UV
-        const newHeight = singleTex.image.height
-        const { uv } = model.geometry.attributes
-        model.geometry.groups.forEach(g => {
-            const tex = materials[g.materialIndex].map
-            if (tex) {
-                const idx = textures.indexOf(tex)
-                if (idx > -1) {
-                    const rmi = remapInfo[idx]
-                    console.log(`Remapping texture ${textures[idx].name}`, rmi)
-                    // Loop through all vertices in this material
-                    const scale = rmi.height / newHeight
-                    const offset = rmi.offset / newHeight
-                    for (let i = g.start; i < g.start + g.count; i++) {
-                        let v = uv.getY(i) * scale + offset
-                        uv.setY(i, v)
+            // Update UV
+            const newHeight = singleTex.image.height
+            const { uv } = model.geometry.attributes
+            model.geometry.groups.forEach(g => {
+                const tex = materials[g.materialIndex].map
+                if (tex) {
+                    const idx = textures.indexOf(tex)
+                    if (idx > -1) {
+                        const rmi = remapInfo[idx]
+                        console.log(`Remapping texture ${textures[idx].name}`, rmi)
+                        // Loop through all vertices in this material
+                        const scale = rmi.height / newHeight
+                        const offset = rmi.offset / newHeight
+                        for (let i = g.start; i < g.start + g.count; i++) {
+                            let v = uv.getY(i) * scale + offset
+                            uv.setY(i, v)
+                        }
                     }
                 }
-            }
-        })
-        uv.needsUpdate = true
-        model.geometry.clearGroups()
-        model.material = new MeshBasicMaterial({ map: singleTex })
-        model.material.name = `${model.name}-processed`
-        singleTex.name = `${model.name}-processed`
+            })
+            uv.needsUpdate = true
+            model.geometry.clearGroups()
+            model.material = new MeshBasicMaterial({ map: singleTex })
+            model.material.name = `${model.name}-processed`
+            singleTex.name = `${model.name}-processed`
+        }
 
         model.userData.cpmData = this.cpmFromModel(model)
 
@@ -154,7 +156,6 @@ export class CarnivoresPlugin extends Plugin {
         })
 
         model.updateMorphTargets()
-
 
         return model
     }
