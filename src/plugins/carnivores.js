@@ -450,10 +450,11 @@ export class CarnivoresPlugin extends Plugin {
                     ani.fps,
                     false /*noLoop*/
                 )
+                clip.userData = { fps: ani.fps }
                 obj.animations.push(clip)
             })
         }
-        
+
         mat.name = model.name || baseName
         obj.name = model.name || baseName
         model.mapping = mapping

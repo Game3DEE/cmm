@@ -103,13 +103,14 @@ export class PrimalPreyPlugin extends Plugin {
                 })
                 const duration = ani.frameDurations.reduce((a,b) => a+b, 0)
                 const fps = ani.frameIndices.length / duration
-                clips.push(
-                    AnimationClip.CreateFromMorphTargetSequence(
+                const clip = AnimationClip.CreateFromMorphTargetSequence(
                     `${ani.name}`,
                     seq,
                     fps,
-                    false /*noLoop*/ )
+                    false /*noLoop*/
                 )
+                clip.userData = { fps }
+                clips.push(clip)
             })
         }
 

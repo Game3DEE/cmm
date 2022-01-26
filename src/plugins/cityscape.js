@@ -126,12 +126,14 @@ export class CityscapePlugin extends Plugin {
                     vertices: [], // unused
                 })
             })
+            const fps = 1.0 / ani.secsPerFrame
             const clip = AnimationClip.CreateFromMorphTargetSequence(
                 ani.name,
                 seq,
-                1.0 / ani.secsPerFrame,
+                fps,
                 false /*noLoop*/
             )
+            clip.userData = { fps }
             clips.push(clip)
         })
 
