@@ -1,11 +1,5 @@
-# View3DN
+# CMM
 
-## TODO
+CMM is a tool for helping modders create content for the [classic Carnivores](https://carnivores.fandom.com/wiki/Carnivores_Wiki) games. It can export all the Carnivores specific formats like 3DF, CAR, VTL, etc.
 
-* on 16-bit to 32-bit texture conversion, use faces (uv coords + flags) to create alpha channel
-* billboard handling: check billboard in CAR/3DF file?
-* Clean up ETC1 code, use offsets instead of generating new Uint8Array's all the time
-
-## Community suggestions:
-
-* Add support for multiple textures (then allow to switch between them)
+It has animation support, and currently allows importing of [Primal Prey](https://carnivores.fandom.com/wiki/Primal_Prey), [Vivisector](https://carnivores.fandom.com/wiki/Vivisector:_Beast_Within), and [Cityscape](https://carnivores.fandom.com/wiki/Carnivores_Cityscape) games.
