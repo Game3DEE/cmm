@@ -25,11 +25,16 @@ export class Plugin {
     // Plugin deactivated; clear out custom UI
     deactivate() {
     }
-
+   
     // if this plugin implements a game "mode", for now it basically
     // specifies if it just loads textures or does models too
     isMode() {
         return false
+    }
+
+    // Returns an object with GUI animation options
+    animationOptions() {
+        return {}
     }
 
     // load one or more types of data

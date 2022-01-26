@@ -36,7 +36,6 @@ const settings = {
     grid: true,
     wireframe: false,
     mode: 1,
-    animation: 0,
 }
 
 function setModel(newModel, plug) {
@@ -107,24 +106,31 @@ function updateAnimations() {
         animations[ani.name] = aIdx +1
     })
 
-    animationsFolder.add(settings, 'animation', animations).onChange(v => {
+    const pluginAnimOpts = activePlugin?.animationOptions() || {}
+
+    const animSettings = {
+        current: 0,
+        remove: () => {
+            mixer.stopAllAction()
+            if (animSettings.current) {
+                const idx = animSettings.current -1
+                model.animations.splice(idx, 1)
+                updateAnimations()
+            }
+        },
+        ...pluginAnimOpts,
+    }
+
+    animationsFolder.add(animSettings, 'current', animations).onChange(v => {
         mixer.stopAllAction()
         if (v) {
             mixer.clipAction(model.animations[v-1]).play()
         }
     })
-    const ctx = {
-        remove: () => {
-            mixer.stopAllAction()
-            if (settings.animation) {
-                const idx = settings.animation -1
-                model.animations.splice(idx, 1)
-                settings.animation = 0
-                updateAnimations()
-            }
-        }
+    animationsFolder.add(animSettings, 'remove')
+    for (let s in pluginAnimOpts) {
+        animationsFolder.add(animSettings, s)
     }
-    animationsFolder.add(ctx, 'remove')
 }
 
 function updateMaterials() {
@@ -205,7 +211,7 @@ function initGUI() {
     const guiFolder = gui.addFolder("GUI")
     guiFolder.add(settings, 'axes').name('Show Axes').onChange(v => axes.visible = v)
     guiFolder.add(settings, 'grid').name('Show Grid').onChange(v => grid.visible = v)
-    guiFolder.add(settings, 'wireframe').listen().onChange(v => {
+    guiFolder.add(settings, 'wireframe').onChange(v => {
         (Array.isArray(model.material) ? model.material : [model.material]).forEach(m => {
             m.wireframe = v
             m.needsUpdate = true
@@ -230,7 +236,7 @@ function initPlugins() {
         }
     })
 
-    gui.add(settings, 'mode', modes).listen().onChange(v => {
+    gui.add(settings, 'mode', modes).onChange(v => {
         // when the user changes the mode, we trigger an "import" from one plugin to another
         const newPlug = plugins[v]
         const newModel = newPlug.convert(model)
