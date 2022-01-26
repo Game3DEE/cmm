@@ -35,7 +35,7 @@ const settings = {
     axes: true,
     grid: true,
     wireframe: false,
-    mode: 1,
+    mode: 0,
 }
 
 function setModel(newModel, plug) {
