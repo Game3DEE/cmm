@@ -464,7 +464,6 @@ export class CarnivoresPlugin extends Plugin {
     }
 
     convertAnimations() {
-        console.log(this.activeModel)
         const { cpmData } = this.activeModel.userData
         const { mapping } = cpmData
         const { position } = this.activeModel.geometry.morphAttributes
@@ -472,6 +471,15 @@ export class CarnivoresPlugin extends Plugin {
 
         if (!cpmData || !mapping || !position) {
             return undefined
+        }
+
+        const lookupFPS = animName => {
+            const anim = this.activeModel.animations.find(ani => ani.name === animName)
+            if (anim) {
+                return anim.userData.fps
+            }
+
+            return 0
         }
 
         let name = ''
@@ -488,7 +496,7 @@ export class CarnivoresPlugin extends Plugin {
                             name,
                             frameCount,
                             frames,
-                            fps: 12,
+                            fps: lookupFPS(name),
                         })
                     }
                     name = animName
@@ -504,7 +512,6 @@ export class CarnivoresPlugin extends Plugin {
                 }
                 frames.push.apply(frames, frame)
                 frameCount++
-                console.log(cpmData.vertices.length, frame.length)
             } else {
                 console.error(`Could not parse name "${attr.name}"`)
             }

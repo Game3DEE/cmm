@@ -1,7 +1,3 @@
-// TODO:
-// - support animations
-// - support for quads (vertexCount === 4)
-
 import {
     AnimationClip,
     BufferGeometry,
