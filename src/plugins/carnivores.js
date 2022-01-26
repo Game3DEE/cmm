@@ -257,7 +257,7 @@ export class CarnivoresPlugin extends Plugin {
             case 'car': return await this.loadCAR(url, baseName)
             case '3dn': return await this.load3DN(url, baseName)
             case 'vtl': return this.activeModel ? await this.loadVTL(url, baseName) : []
-            case 'ani': return this.activeModel ? await this.loadVTL(url, baseName) : []
+            case 'ani': return this.activeModel ? await this.loadANI(url, baseName) : []
             case 'crt': return await this.loadCRT(url, baseName)
         }
     }
@@ -333,45 +333,63 @@ export class CarnivoresPlugin extends Plugin {
             })
         }
 
-        data.animations.forEach(ani => {
-            result.push({
-                type: DataType.Animation,
-                animation: ani,
-            })
-        })
-
         return result
     }
 
-    async loadVTL(url) {
+    async loadVTL(url, baseName) {
         const data = loadVTL(await this.loadFromURL(url))
-        const anim = this.generateAnimation(data)
+        const anim = this.generateAnimation(data, baseName)
         return anim ? [
-            { 'type': DataType.Animation, animation: anim },
+            { type: DataType.Animation, animation: anim },
         ] : []
     }
 
-    async loadANI(url) {
+    async loadANI(url, baseName) {
         const data = loadANI(await this.loadFromURL(url))
-        const anim = this.generateAnimation(data)
+        const anim = this.generateAnimation(data, baseName)
         return anim ? [
-            { 'type': DataType.Animation, animation: anim },
+            { type: DataType.Animation, animation: anim },
         ] : []
     }
 
-    generateAnimation(data) {
+    generateAnimation(data, baseName) {
         const { cpmData } = this.activeModel.userData
         // If animation doesn't match model, forget about it
         if (cpmData.vertices.length !== data.vertCount) {
             return null
         }
-        /*
-        fps
-        vertCount
-        frameCount
-        frames
-        */
-        return null
+
+        const { mapping } = cpmData
+        const cmmVertCount = this.activeModel.geometry.attributes.position.count
+        const { position } = this.activeModel.geometry.morphAttributes
+        const seq = []
+        for (let i = 0; i < data.frameCount; i++) {
+            const frame = []
+            const frameOffset = i * data.vertCount * 3
+            for (let j = 0; j < cmmVertCount; j++) {
+                const index = frameOffset + (mapping[j] * 3)
+                frame.push(
+                    data.frames[index+0] / 16,
+                    data.frames[index+1] / 16,
+                    data.frames[index+2] / 16,
+                )
+            }
+            const attr = new Float32BufferAttribute(frame, 3)
+            attr.name = `${baseName}.${i}`
+            position.push(attr)
+            seq.push({
+                name: attr.name,
+                vertices: [],
+            })
+        }
+        const clip = AnimationClip.CreateFromMorphTargetSequence(
+            baseName,
+            seq,
+            data.fps,
+            false /*noLoop*/
+        )
+        clip.userData = { fps: data.fps }
+        return clip
     }
 
     isMode() {

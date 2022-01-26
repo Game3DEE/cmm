@@ -66,9 +66,24 @@ function setModel(newModel, plug) {
     console.log(model)
 }
 
+function addNewAnimations(newAnimations) {
+    newAnimations.forEach(ani => {
+        while (model.animations.findIndex(a => a.name === ani.name) !== -1) {
+            ani.name += '_dup'
+        }
+    })
+
+    model.animations.push.apply(model.animations, newAnimations)
+    model.updateMorphTargets()
+}
+
 function addNewTextures(newTextures) {
     const materials = Array.isArray(model.material) ? model.material : [model.material]
     newTextures.forEach(t => {
+        while (textures.findIndex(tex => tex.name === t.name) !== -1) {
+            t.name += '_dup'
+        }
+
         textures.push(t)
 
         if (materials.length > 1) {
@@ -157,10 +172,10 @@ function updateMaterials() {
 }
 
 async function openFile(url, name) {
-    const fileName = name.toLowerCase()
+    const fileName = name
     const splitName = fileName.split('.')
     const baseName = splitName[0]
-    const ext = splitName.pop()
+    const ext = splitName.pop().toLowerCase()
 
     for (let j = 0; j < plugins.length; j++) {
         const plug = plugins[j]
@@ -169,6 +184,7 @@ async function openFile(url, name) {
                 const data = await plug.loadFile(url, ext, baseName)
                 let newModel = null
                 let newTextures = []
+                let newAnimations = []
                 data.forEach(d => {
                     switch(d.type) {
                         case DataType.Model:
@@ -181,6 +197,7 @@ async function openFile(url, name) {
                             break
                         case DataType.Animation:
                             // Animation dropped, add animation to current model
+                            newAnimations.push(d.animation)
                             break
                     }
                 })
@@ -188,6 +205,10 @@ async function openFile(url, name) {
                 if (newTextures.length) {
                     addNewTextures(newTextures)
                     updateMaterials()
+                }
+                if (newAnimations.length) {
+                    addNewAnimations(newAnimations)
+                    updateAnimations()
                 }
                 return // plugin loaded file successfully, skip other plugins
             } catch(e) {
