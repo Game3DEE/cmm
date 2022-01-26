@@ -144,6 +144,12 @@ instances:
     value: 32
   max_patches:
     value: 32
+  compressed_center_x:
+    value: -center.x / stretch.x
+  compressed_center_y:
+    value: -center.y / stretch.y
+  compressed_center_z:
+    value: -center.z / stretch.z
 
 types:
   animation:
@@ -379,27 +385,41 @@ types:
 
   vertex8:
     seq:
-      - id: x
+      - id: raw_x
         type: s1
-      - id: y
+      - id: raw_y
         type: s1
-      - id: z
+      - id: raw_z
         type: s1
       - id: normal_index
         type: u1
+    instances:
+      x:
+        value: (raw_x - _root.compressed_center_x) * _root.stretch.x
+      y:
+        value: (raw_y - _root.compressed_center_y) * _root.stretch.y
+      z:
+        value: (raw_z - _root.compressed_center_z) * _root.stretch.z
 
   vertex16:
     seq:
-      - id: x
+      - id: raw_x
         type: s2
-      - id: y
+      - id: raw_y
         type: s2
-      - id: z
+      - id: raw_z
         type: s2
       - id: normal_h
         type: u1
       - id: normal_b
         type: u1
+    instances:
+      x:
+        value: (raw_x - _root.compressed_center_x) * _root.stretch.x
+      y:
+        value: (raw_y - _root.compressed_center_y) * _root.stretch.y
+      z:
+        value: (raw_z - _root.compressed_center_z) * _root.stretch.z
 
   bounding_box:
     seq:

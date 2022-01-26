@@ -1,10 +1,9 @@
 // TODO:
 // - support animations
-// - use compressed vertices (integer ones, for automatic scale up)
-// - tex format => write code to handle the KSY
 // - support for quads (vertexCount === 4)
 
 import {
+    AnimationClip,
     BufferGeometry,
     DataTexture,
     Float32BufferAttribute,
@@ -31,7 +30,6 @@ export class CityscapePlugin extends Plugin {
 
     async loadTexture(url, baseName) {
         const parsed = new TEX(new KaitaiStream(await this.loadFromURL(url)))
-        console.log(parsed)
         const frame = parsed.frames[0]
         const pixelCount = frame.width * frame.height
         const bytesPerPixel = parsed.bytesPerPixel
@@ -51,36 +49,99 @@ export class CityscapePlugin extends Plugin {
         }]
     }
 
-    async loadModel(url, baseName) {
-        const parsed = new MDL(new KaitaiStream(await this.loadFromURL(url)))
-        console.log(parsed)
-        const mipInfo = parsed.mipInfo[0]
+    buildLOD(parsed, lodIdx) {
+        const mipInfo = parsed.mipInfo[lodIdx]
 
+        const mapping = []
         const position = []
         const uv = []
 
+        function addVertex(vIdx,tIdx) {
+            mapping.push(vIdx)
+            const v = parsed.vertexBlock.vertices[vIdx]
+            position.push(v.x * scale, v.y * scale, v.z * scale)
+            const texV = mipInfo.textureVertices[tIdx]
+            uv.push(
+                texV.uv.x / parsed.textureWidth,
+                texV.uv.y / parsed.textureHeight,
+            )
+        }
+
         mipInfo.polygons.forEach(p => {
-            if (p.vertexCount != 3) throw new Error(`MDL: No support for non-triangles (${p.vertexCount}) yet`)
-            p.vertices.forEach(pv => {
-                const v = parsed.mainMipVertices[pv.transformedVertex]
-                position.push(v.x * scale, v.y * scale, v.z * scale)
-                const texV = mipInfo.textureVertices[pv.textureVertex]
-                uv.push(
-                    texV.uv.x / parsed.textureWidth,
-                    texV.uv.y / parsed.textureHeight,
-                )
-            })
+            if (p.vertexCount < 3 || p.vertexCount > 4) {
+                throw new Error(`MDL: Unsupported polygon size (${p.vertexCount})`)
+            }
+
+            addVertex(p.vertices[0].transformedVertex, p.vertices[0].textureVertex)
+            addVertex(p.vertices[1].transformedVertex, p.vertices[1].textureVertex)
+            addVertex(p.vertices[2].transformedVertex, p.vertices[2].textureVertex)
+            if (p.vertexCount === 4) { // quad, so create 2nd triangle
+                addVertex(p.vertices[2].transformedVertex, p.vertices[2].textureVertex)
+                addVertex(p.vertices[3].transformedVertex, p.vertices[3].textureVertex)
+                addVertex(p.vertices[0].transformedVertex, p.vertices[0].textureVertex)
+            }
         })
+
+        return {
+            position,
+            uv,
+            mapping,
+        }
+    }
+
+    async loadModel(url, baseName) {
+        const parsed = new MDL(new KaitaiStream(await this.loadFromURL(url)))
+        console.log(parsed)
+        
+        const { position, uv, mapping } = this.buildLOD(parsed, 0)
 
         let geo = new BufferGeometry()
         geo.setAttribute('position', new Float32BufferAttribute(position, 3))
         geo.setAttribute('uv', new Float32BufferAttribute(uv, 2))
         geo.computeVertexNormals()
 
+        // Build animation frames
+        const frames = []
+        for (let i = 0; i < parsed.frameCount; i++) {
+            const frameStart = i * parsed.vertexCount
+            const frame = []
+            for (let i = 0; i < position.length / 3; i++) {
+                const v = parsed.vertexBlock.vertices[frameStart + mapping[i]]
+                frame.push(v.x * scale, v.y * scale, v.z * scale)
+            }
+            frames.push(frame)
+        }
+
+        // Build actual animations
+        const clips = []
+        geo.morphAttributes.position = []
+        parsed.animations.forEach(ani => {
+            const seq = []
+            ani.frameIndices.forEach((frIdx,i) => {
+                const attr = new Float32BufferAttribute(frames[frIdx], 3)
+                attr.name = `${ani.name}.${i}`
+                geo.morphAttributes.position.push(attr)
+                seq.push({
+                    name: attr.name,
+                    vertices: [], // unused
+                })
+            })
+            const clip = AnimationClip.CreateFromMorphTargetSequence(
+                ani.name,
+                seq,
+                1.0 / ani.secsPerFrame,
+                false /*noLoop*/
+            )
+            clips.push(clip)
+        })
+
         const mat = new MeshNormalMaterial()
         mat.name = baseName
         const mesh = new Mesh(geo, mat)
         mesh.name = baseName
+        mesh.animations = clips
+        mesh.userData.model = parsed
+        mesh.userData.mapping = mapping
 
         return [{
             type: DataType.Model, model: mesh,
