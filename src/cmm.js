@@ -257,7 +257,7 @@ function initPlugins() {
         }
     })
 
-    gui.add(settings, 'mode', modes).onChange(v => {
+    gui.add(settings, 'mode', modes).listen().onChange(v => {
         // when the user changes the mode, we trigger an "import" from one plugin to another
         const newPlug = plugins[v]
         const newModel = newPlug.convert(model)
