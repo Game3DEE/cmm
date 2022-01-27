@@ -1,6 +1,6 @@
 meta:
-  id: primalprey_ssm
-  file-extension: ssm
+  id: ssmo
+  file-extension: ssmo
   endian: le
   encoding: utf8
 
@@ -141,8 +141,12 @@ types:
         type: skin
         repeat: expr
         repeat-expr: skin_count
-      - id: filler
+      - id: param_count
         type: u2
+      - id: params
+        type: param
+        repeat: expr
+        repeat-expr: param_count
 
   skin:
     seq:

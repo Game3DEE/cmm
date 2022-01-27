@@ -1,14 +1,14 @@
 // NOTE: This file was manually tweaked for ES6 compatibility
 import { KaitaiStream } from "kaitai-struct";
 
-function PrimalpreySsm(_io, _parent, _root) {
+function Ssmo(_io, _parent, _root) {
     this._io = _io;
     this._parent = _parent;
     this._root = _root || this;
 
     this._read();
 }
-PrimalpreySsm.prototype._read = function() {
+Ssmo.prototype._read = function() {
     this.magic = this._io.readBytes(4);
     if (!((KaitaiStream.byteArrayCompare(this.magic, [83, 83, 77, 79]) == 0))) {
     throw new KaitaiStream.ValidationNotEqualError([83, 83, 77, 79], this.magic, this._io, "/seq/0");
@@ -47,7 +47,7 @@ PrimalpreySsm.prototype._read = function() {
     }
 }
 
-var Vector3f = PrimalpreySsm.Vector3f = (function() {
+var Vector3f = Ssmo.Vector3f = (function() {
     function Vector3f(_io, _parent, _root) {
     this._io = _io;
     this._parent = _parent;
@@ -64,7 +64,7 @@ var Vector3f = PrimalpreySsm.Vector3f = (function() {
     return Vector3f;
 })();
 
-var Param = PrimalpreySsm.Param = (function() {
+var Param = Ssmo.Param = (function() {
     function Param(_io, _parent, _root) {
     this._io = _io;
     this._parent = _parent;
@@ -86,7 +86,7 @@ var Param = PrimalpreySsm.Param = (function() {
     return Param;
 })();
 
-var Obj = PrimalpreySsm.Obj = (function() {
+var Obj = Ssmo.Obj = (function() {
     function Obj(_io, _parent, _root) {
     this._io = _io;
     this._parent = _parent;
@@ -104,13 +104,17 @@ var Obj = PrimalpreySsm.Obj = (function() {
     for (var i = 0; i < this.skinCount; i++) {
         this.skins[i] = new Skin(this._io, this, this._root);
     }
-    this.filler = this._io.readU2le();
+    this.paramCount = this._io.readU2le();
+    this.params = new Array(this.paramCount);
+    for (var i = 0; i < this.paramCount; i++) {
+        this.params[i] = new Param(this._io, this, this._root);
+    }
     }
 
     return Obj;
 })();
 
-var Frame = PrimalpreySsm.Frame = (function() {
+var Frame = Ssmo.Frame = (function() {
     function Frame(_io, _parent, _root) {
     this._io = _io;
     this._parent = _parent;
@@ -142,7 +146,7 @@ var Frame = PrimalpreySsm.Frame = (function() {
     return Frame;
 })();
 
-var Face = PrimalpreySsm.Face = (function() {
+var Face = Ssmo.Face = (function() {
     function Face(_io, _parent, _root) {
     this._io = _io;
     this._parent = _parent;
@@ -167,7 +171,7 @@ var Face = PrimalpreySsm.Face = (function() {
     return Face;
 })();
 
-var Animation = PrimalpreySsm.Animation = (function() {
+var Animation = Ssmo.Animation = (function() {
     function Animation(_io, _parent, _root) {
     this._io = _io;
     this._parent = _parent;
@@ -200,7 +204,7 @@ var Animation = PrimalpreySsm.Animation = (function() {
     return Animation;
 })();
 
-var Texture = PrimalpreySsm.Texture = (function() {
+var Texture = Ssmo.Texture = (function() {
     function Texture(_io, _parent, _root) {
     this._io = _io;
     this._parent = _parent;
@@ -217,7 +221,7 @@ var Texture = PrimalpreySsm.Texture = (function() {
     return Texture;
 })();
 
-var Skin = PrimalpreySsm.Skin = (function() {
+var Skin = Ssmo.Skin = (function() {
     function Skin(_io, _parent, _root) {
     this._io = _io;
     this._parent = _parent;
@@ -233,5 +237,5 @@ var Skin = PrimalpreySsm.Skin = (function() {
 
     return Skin;
 })();
-
-export default PrimalpreySsm
+  
+export default Ssmo
