@@ -360,6 +360,11 @@ export class CarnivoresPlugin extends Plugin {
             return null
         }
 
+        // !!! If there's no animations yet, create the empty array
+        if (!this.activeModel.geometry.morphAttributes.position) {
+            this.activeModel.geometry.morphAttributes.position = []
+        }
+
         const { mapping } = cpmData
         const cmmVertCount = this.activeModel.geometry.attributes.position.count
         const { position } = this.activeModel.geometry.morphAttributes
