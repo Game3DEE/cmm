@@ -40,7 +40,8 @@ export class VivisectorPlugin extends Plugin {
                     break
                 case CMF.BlockId.UV1:
                     console.log('UV1')
-                    uvs = b.data.uvs
+                    if (!uvs)
+                        uvs = b.data.uvs
                     break
                 case CMF.BlockId.OBJECT_NAME:
                     console.log('OBJECT_NAME', b.data)
@@ -51,15 +52,18 @@ export class VivisectorPlugin extends Plugin {
                     break
                 case CMF.BlockId.FACES:
                     console.log('FACES')
-                    faces = b.data.faces
+                    if (!faces)
+                        faces = b.data.faces
                     break
                 case CMF.BlockId.VERTICES:
                     console.log('VERTICES')
-                    vertices = b.data.vertices
+                    if (!vertices)
+                        vertices = b.data.vertices
                     break
                 case 0x201c:
-                    indices = new Uint32Array(b.data.buffer, b.data.byteOffset, b.data.length / 4)
-                    console.log('MATERIAL_INDICES', indices)
+                    if (!indices)
+                        indices = new Uint32Array(b.data.buffer, b.data.byteOffset, b.data.length / 4)
+                    console.log('MATERIAL_INDICES', b.data.buffer)
                     break
             }
         })
