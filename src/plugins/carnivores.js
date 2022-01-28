@@ -300,7 +300,6 @@ export class CarnivoresPlugin extends Plugin {
         const tex = this.convertTexture(data.texture, data.textureSize, baseName)
         const result = [
             { type: DataType.Model, model: this.createMeshFromModel(data, tex, baseName) },
-            { type: DataType.Texture, texture: tex },
         ]
 
         if (tex) { // we could have a zero byte texture
