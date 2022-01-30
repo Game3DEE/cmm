@@ -18,12 +18,16 @@ export function loadTGA(buffer) {
     const imagedescriptor = dv.getUint8(17)
     let offset = 18
 
+    console.log(`TGA datatypecode: ${datatypecode}, alpha bits: ${imagedescriptor & 0xf}`)
+
     // Skip over unnecessary stuff
     offset += idlength
     offset += colourmaptype * colourmaplength
     
     const data = new Uint8ClampedArray(width * height * 4)
     const bytesPerPixel = bitsperpixel / 8
+
+    const hasValidAlpha = (imagedescriptor & 0xf) > 0
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
@@ -38,7 +42,10 @@ export function loadTGA(buffer) {
                     data[off +0] = (p[1] & 0x7c) << 1
                     data[off +1] = ((p[1] & 0x03) << 6) | ((p[0] & 0xe0) >> 2)
                     data[off +2] = (p[0] & 0x1f) << 3
-                    data[off +3] = (p[1] & 0x80) ? 255 : 0
+                    if (hasValidAlpha)
+                        data[off +3] = (p[1] & 0x80) ? 255 : 0
+                    else
+                        data[off +3] = 255
                     break
                 case 3:
                     data[off +0] = p[2]
@@ -50,7 +57,10 @@ export function loadTGA(buffer) {
                     data[off +0] = p[2]
                     data[off +1] = p[1]
                     data[off +2] = p[0]
-                    data[off +3] = p[3]
+                    if (hasValidAlpha)
+                        data[off +3] = p[3]
+                    else
+                        data[off +3] = 255
                     break
                 default:
                     throw new Error(`Unknown bytesPerPixel value ${bytesPerPixel}!`)
