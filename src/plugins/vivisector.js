@@ -4,7 +4,18 @@ import CMF from '../kaitai/vivisector_cmf.js'
 import { KaitaiStream } from 'kaitai-struct'
 
 import {
-    BufferGeometry, Float32BufferAttribute, Mesh, MeshNormalMaterial,
+    Bone,
+    BufferGeometry,
+    DoubleSide,
+    Float32BufferAttribute,
+    Matrix3,
+    Matrix4,
+    Mesh,
+    MeshBasicMaterial,
+    MeshNormalMaterial,
+    SkeletonHelper,
+    SphereBufferGeometry,
+    Vector3,
 } from 'three'
 
 export class VivisectorPlugin extends Plugin {
@@ -20,50 +31,52 @@ export class VivisectorPlugin extends Plugin {
         console.log(parsed)
 
         let vertices, faces, uvs, indices
+        let boneNames, bonePos, boneParents, boneTransforms
         parsed.blocks.forEach(b => {
+            let blockName = CMF.BlockId[b.id]
+            if (!blockName) {
+                blockName = '0x' + b.id.toString(16) + `(size:${b.size})`
+            }
+            console.log(blockName)
             switch(b.id) {
                 // dumps for further research
                 case CMF.BlockId.HEADER:
-                    console.log('HDR', b.data)
                     break
                 case CMF.BlockId.FACE_COUNT:
-                    console.log('FACE_COUNT', b.data)
                     break
                 case CMF.BlockId.VERT_COUNT:
-                    console.log('VERT_COUNT', b.data)
                     break
                 case CMF.BlockId.TEXTURE_COUNT:
-                    console.log('TEXTURE_COUNT', b.data)
                     break
                 case CMF.BlockId.TEXTURES:
-                    console.log('TEXTURES', b.data)
                     break
                 case CMF.BlockId.UV1:
-                    console.log('UV1')
                     if (!uvs)
                         uvs = b.data.uvs
                     break
-                case CMF.BlockId.OBJECT_NAME:
-                    console.log('OBJECT_NAME', b.data)
+                case CMF.BlockId.BONE_NAMES:
+                    boneNames = b.data.boneNames
                     break
-                case CMF.BlockId.UV2: // Not UVs but normals or so?
-                    console.log('UV2')
-                    //uvs = b.data.uvs
+                case CMF.BlockId.BONE_POSITIONS:
+                    bonePos = b.data.bonePositions
+                    break
+                case CMF.BlockId.BONE_PARENTS:
+                    boneParents = b.data.boneParents
+                    break
+                case CMF.BlockId.BONE_TRANSFORMS:
+                    boneTransforms = b.data.boneTransforms
                     break
                 case CMF.BlockId.FACES:
-                    console.log('FACES')
                     if (!faces)
                         faces = b.data.faces
                     break
                 case CMF.BlockId.VERTICES:
-                    console.log('VERTICES')
                     if (!vertices)
                         vertices = b.data.vertices
                     break
-                case 0x201c:
+                case CMF.BlockId.FACE_MATERIALS:
                     if (!indices)
-                        indices = new Uint32Array(b.data.buffer, b.data.byteOffset, b.data.length / 4)
-                    console.log('MATERIAL_INDICES', b.data.buffer)
+                        indices = b.data.indices
                     break
             }
         })
@@ -128,6 +141,24 @@ export class VivisectorPlugin extends Plugin {
 
         const mesh = new Mesh(geo, mat)
         mesh.name = baseName
+
+        // Create bones, if we have them
+        if (boneNames && boneParents && bonePos && boneTransforms) {
+            const m4 = new Matrix4()
+            const m3 = new Matrix3()
+            let bGeo = new SphereBufferGeometry(0.1)
+            let bMat = new MeshBasicMaterial({ color: 0x0000ff })
+            for (let i = 0; i < boneNames.length; i++) {
+                const b = new Mesh(bGeo, bMat)
+                b.name = boneNames[i]
+                m3.fromArray(boneTransforms[i].elements)
+                m4.identity()
+                m4.setFromMatrix3(m3)
+                m4.setPosition(bonePos[i].x, bonePos[i].y, bonePos[i].z)
+                m4.decompose(b.position, b.quaternion, b.scale)
+                mesh.add(b)
+            }
+        }
 
         return mesh
     }
