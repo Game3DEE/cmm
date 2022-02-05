@@ -1,5 +1,7 @@
 import { DataType, Plugin } from './plugin.js'
+
 import CMF from '../kaitai/vivisector_cmf.js'
+import TRK from '../kaitai/vivisector_trk.js'
 
 import { KaitaiStream } from 'kaitai-struct'
 
@@ -20,10 +22,20 @@ import {
 
 export class VivisectorPlugin extends Plugin {
     async loadFile(url, ext, baseName) {
-        const model = this.loadModel(await this.loadFromURL(url), baseName)
-        return [
-            { type: DataType.Model, model: model },
-        ]
+        switch(ext) {
+            case 'cmf': return [ { type: DataType.Model, model: this.loadModel(await this.loadFromURL(url), baseName) }]
+            case 'trk': return [ { type: DataType.Animation, animation: this.loadAnimation(await this.loadFromURL(url), baseName) }]
+        }
+    }
+
+    // TODO: only allow when plugin is active
+    loadAnimation(buffer, baseName) {
+        const parsed = new TRK(new KaitaiStream(buffer))
+        console.log(parsed)
+
+        
+
+        return null
     }
 
     loadModel(buffer, baseName) {
@@ -41,14 +53,7 @@ export class VivisectorPlugin extends Plugin {
             switch(b.id) {
                 // dumps for further research
                 case CMF.BlockId.HEADER:
-                    break
-                case CMF.BlockId.FACE_COUNT:
-                    break
-                case CMF.BlockId.VERT_COUNT:
-                    break
-                case CMF.BlockId.TEXTURE_COUNT:
-                    break
-                case CMF.BlockId.TEXTURES:
+                    console.log(b.data)
                     break
                 case CMF.BlockId.UV1:
                     if (!uvs)
@@ -175,16 +180,3 @@ export class VivisectorPlugin extends Plugin {
         return "Vivisector (Model)"
     }
 }
-
-/*
-testing with Child_on_board:
-
-0x2017 => u4 x face_count = { 0,0,0,0,0,....1,1,1,1,... } <= only changes eyes?
-0x201a => u4 x face_count = { 0x1d,..., 0x6d,... } <= flags?
-0x201c => u4 x face_count = { 0/1 } <= material index? 
-0x201d => u4 x face_count = { 0 }
-
-0xf021 => u4 x face_count = { 0,0,0,0, .... 0xffffffff,...} <= color or flags?
-0xf022 => u1 x face_count = { 0,0,0,0, .... }
-0xf023 => u2 x face_count = { 0,0,0,0, .... }
-*/
