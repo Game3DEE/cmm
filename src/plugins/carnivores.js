@@ -576,8 +576,7 @@ export class CarnivoresPlugin extends Plugin {
     convertTexture(texture, textureBytes, baseName) {
         // Bail out early if we have no texture data
         if (!textureBytes) {
-            tex = null
-            return
+            return null
         }
 
         const width = 256
