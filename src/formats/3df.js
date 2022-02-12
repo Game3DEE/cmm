@@ -11,7 +11,7 @@ export function load3DF(buffer, offset = 0) {
     const vertCount = dv.getUint32(offset + 0, true)
     const faceCount = dv.getUint32(offset + 4, true)
     const boneCount = dv.getUint32(offset + 8, true)
-    const textureSize = dv.getUint32(offset + 12, true)
+    let textureSize = dv.getUint32(offset + 12, true)
     offset += 16
 
     const { faces, facesSize } = readFaces(dv, offset, faceCount)
@@ -34,7 +34,7 @@ export function load3DF(buffer, offset = 0) {
                 dv.getFloat32(offset + 36, true),
                 dv.getFloat32(offset + 40, true),
             ],
-            parent: dv.getUint16(offset + 44, true),
+            parent: dv.getInt16(offset + 44, true),
             hidden: dv.getUint16(offset + 46, true),
         }
         offset += 48
@@ -42,8 +42,14 @@ export function load3DF(buffer, offset = 0) {
     }
 
     // Read RGB5551 texture
-    const texture = new Uint16Array(buffer, offset, textureSize / 2)
-    offset += textureSize
+    let texture;
+    if (offset + textureSize > buffer.byteLength) {
+        texture = []
+        textureSize = 0
+    } else {
+        texture = new Uint16Array(buffer, offset, textureSize / 2)
+        offset += textureSize
+    }
 
     return {
         model: {
