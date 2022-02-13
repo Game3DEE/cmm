@@ -3,14 +3,15 @@ meta:
   file-extension: vivisector_trk
   encoding: ascii
   endian: le
-  
+
 seq:
   - id: bone_count
     type: u4
   - id: frame_max
     type: u4
-  - id: val3
+  - id: rot_sequence
     type: u4
+    doc: Either 1 or zero, any other value gets set to 0 in code
   - id: fps
     type: u4
   - id: bones
@@ -35,16 +36,18 @@ types:
     seq:
       - id: frame_index
         type: u4
-      - id: val2
+      - id: active
         type: u4
-      - id: val3
+      - id: acceleration
         type: u4
-      - id: translate
+      - id: rotation
         type: vector3f
-      - id: rotate
+        doc: y rotation gets * -1 on load
+      - id: translation
         type: vector3f
       - id: scale
         type: vector3f
+        doc: scale
 
   vector3f:
     seq:

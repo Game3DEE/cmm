@@ -6,18 +6,20 @@ import TRK from '../kaitai/vivisector_trk.js'
 import { KaitaiStream } from 'kaitai-struct'
 
 import {
+    AnimationClip,
     Bone,
     BufferGeometry,
-    DoubleSide,
+    Euler,
     Float32BufferAttribute,
-    Matrix3,
-    Matrix4,
     Mesh,
-    MeshBasicMaterial,
     MeshNormalMaterial,
+    Quaternion,
+    QuaternionKeyframeTrack,
+    Skeleton,
     SkeletonHelper,
-    SphereBufferGeometry,
+    SkinnedMesh,
     Vector3,
+    VectorKeyframeTrack,
 } from 'three'
 
 export class VivisectorPlugin extends Plugin {
@@ -28,14 +30,55 @@ export class VivisectorPlugin extends Plugin {
         }
     }
 
+    activate(model) {
+        this.activeModel = model
+    }
+
+    deactivate() {
+        this.activeModel = null
+    }
+
     // TODO: only allow when plugin is active
     loadAnimation(buffer, baseName) {
         const parsed = new TRK(new KaitaiStream(buffer))
         console.log(parsed)
 
-        
+        const frameSpeed = 1 / 3
 
-        return null
+        const keyFrameTracks = []
+        const q = new Quaternion()
+        const e = new Euler()
+        const v = new Vector3()
+        parsed.bones.forEach(bone => {
+            const boneNode = this.activeModel.getObjectByName(bone.name.toLowerCase())
+            if (!boneNode) {
+                console.log(`Unable to find bone ${bone.name}`)
+                return
+            }
+            const base = boneNode.position.clone() // XXX this could be triggered during animation and be wrong!
+            const timesT = [], valuesT = []
+            const timesR = [], valuesR = []
+            //bone.name
+            bone.blocks.forEach(frame => {
+                // handle translation
+                timesT.push(frame.frameIndex * frameSpeed)
+                v.copy(base).add(frame.translation)
+                valuesT.push(v.x, v.y, v.z)
+                // handle rotation
+                timesR.push(frame.frameIndex * frameSpeed)
+                v.copy(frame.rotation).multiplyScalar(Math.PI / 180)
+                v.y *= -1
+                e.set(v.x, v.y, v.z, 'ZXY')
+                q.setFromEuler(e)
+                valuesR.push(q.x, q.y, q.z, q.w)
+            })
+            keyFrameTracks.push(
+                new VectorKeyframeTrack(`${bone.name}.position`, timesT, valuesT),
+                new QuaternionKeyframeTrack(`${bone.name}.quaternion`, timesR, valuesR),
+            )
+        })
+
+        return new AnimationClip(baseName, -1, keyFrameTracks)
     }
 
     loadModel(buffer, baseName) {
@@ -43,7 +86,7 @@ export class VivisectorPlugin extends Plugin {
         console.log(parsed)
 
         let vertices, faces, uvs, indices
-        let boneNames, bonePos, boneParents, boneTransforms
+        let boneNames, bonePos, boneParents, boneTransforms, boneVertMapping
         parsed.blocks.forEach(b => {
             let blockName = CMF.BlockId[b.id]
             if (!blockName) {
@@ -71,6 +114,9 @@ export class VivisectorPlugin extends Plugin {
                 case CMF.BlockId.BONE_TRANSFORMS:
                     boneTransforms = b.data.boneTransforms
                     break
+                case CMF.BlockId.VERTEX_BONES:
+                    boneVertMapping = b.data.boneIndices
+                    break
                 case CMF.BlockId.FACES:
                     if (!faces)
                         faces = b.data.faces
@@ -86,9 +132,13 @@ export class VivisectorPlugin extends Plugin {
             }
         })
 
+        console.log(boneNames)
+
         const position = []
         const uv = []
         const groups = []
+        const skinIndex = []
+        const skinWeight = []
 
         let matId = -1
         faces?.forEach((f,i) => {
@@ -111,6 +161,15 @@ export class VivisectorPlugin extends Plugin {
                 matId = indices[i]
             }
 
+            if (boneVertMapping) {
+                skinIndex.push(boneVertMapping[f.c], 0, 0, 0)
+                skinWeight.push(1, 0, 0, 0)
+                skinIndex.push(boneVertMapping[f.b], 0, 0, 0)
+                skinWeight.push(1, 0, 0, 0)
+                skinIndex.push(boneVertMapping[f.a], 0, 0, 0)
+                skinWeight.push(1, 0, 0, 0)
+            }
+
             position.push(
                 vertices[f.c].x, vertices[f.c].y, vertices[f.c].z, 
                 vertices[f.b].x, vertices[f.b].y, vertices[f.b].z, 
@@ -128,6 +187,10 @@ export class VivisectorPlugin extends Plugin {
         const geo = new BufferGeometry()
         geo.setAttribute('position', new Float32BufferAttribute(position, 3))
         geo.setAttribute('uv', new Float32BufferAttribute(uv, 2))
+        if (skinWeight.length) {
+            geo.setAttribute('skinWeight', new Float32BufferAttribute(skinWeight, 4))
+            geo.setAttribute('skinIndex', new Float32BufferAttribute(skinIndex, 4))
+        }
         geo.computeVertexNormals()
         groups.forEach(({ start, count, materialIndex }) => geo.addGroup(start, count, materialIndex))
 
@@ -142,34 +205,48 @@ export class VivisectorPlugin extends Plugin {
             }
         })
 
-        console.log(geo)
-
-        const mesh = new Mesh(geo, mat)
-        mesh.name = baseName
-
-        // Create bones, if we have them
+        let mesh;
         if (boneNames && boneParents && bonePos && boneTransforms) {
-            const m4 = new Matrix4()
-            const m3 = new Matrix3()
-            let bGeo = new SphereBufferGeometry(0.1)
-            let bMat = new MeshBasicMaterial({ color: 0x0000ff })
+            let v1 = new Vector3(), v2 = new Vector3()
+            const bones = []
             for (let i = 0; i < boneNames.length; i++) {
-                const b = new Mesh(bGeo, bMat)
-                b.name = boneNames[i]
+                const b = new Bone()
+                b.name = boneNames[i].toLowerCase()
+                v1.set(bonePos[i].x, bonePos[i].y, bonePos[i].z)
+                const parent = boneParents[i]
+                if (parent !== -1) {
+                    v2.set(bonePos[parent].x, bonePos[parent].y, bonePos[parent].z)
+                    v1.sub(v2)
+                    bones[parent].add(b)
+                }
+                b.position.copy(v1)
+                bones.push(b)
+
+                /*
                 m3.fromArray(boneTransforms[i].elements)
                 m4.identity()
                 m4.setFromMatrix3(m3)
                 m4.setPosition(bonePos[i].x, bonePos[i].y, bonePos[i].z)
                 m4.decompose(b.position, b.quaternion, b.scale)
                 mesh.add(b)
+                */
             }
+            mesh = new SkinnedMesh( geo, mat );
+            const skeleton = new Skeleton( bones );
+            mesh.add( skeleton.bones[ 0 ] );
+            mesh.bind( skeleton );
+
+            mesh.add( new SkeletonHelper(mesh) )
+        } else {
+            mesh = new Mesh(geo, mat)
         }
+        mesh.name = baseName
 
         return mesh
     }
 
     supportedExtensions() {
-        return [ 'cmf' ]
+        return [ 'cmf', 'trk' ]
     }
 
     isMode() {
