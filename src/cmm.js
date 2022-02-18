@@ -22,7 +22,7 @@ let clock = new Clock()
 // GUI elements
 let gui, materialFolder, animationsFolder
 // model info
-let vertCountSpan, faceCountSpan, modelNameSpan
+let faceCountSpan, modelNameSpan
 // plugin data
 let plugins = [], activePlugin
 // active model data
@@ -52,7 +52,6 @@ function setModel(newModel, plug) {
 
     if (model) {
         // TODO: traverse object hierarchy, handled multi-geometry properly
-        vertCountSpan.innerText = model.geometry.attributes.position.count
         faceCountSpan.innerText = model.geometry.index ? model.geometry.index.count / 3 : model.geometry.attributes.position.count / 3
         modelNameSpan.innerText = model.name
         scene.add(model)
@@ -278,7 +277,6 @@ function scanForNewTextures(model) {
 }
 
 function init() {
-    vertCountSpan = document.getElementById('vertCount')
     faceCountSpan = document.getElementById('faceCount')
     modelNameSpan = document.getElementById('modelName')
 
