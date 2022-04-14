@@ -6,6 +6,8 @@ import { CarnivoresPlugin } from "./carnivores.js"
 import { VivisectorPlugin } from "./vivisector.js"
 import { PrimalPreyPlugin } from './primalprey.js'
 import { CityscapePlugin } from './cityscape.js'
+import { Prism3DPlugin } from './prism3d.js'
+import { ChasmPlugin } from './chasm.js'
 import { GenericPlugin } from './generic.js'
 export { DataType } from './plugin.js'
 
@@ -16,6 +18,8 @@ export function setupPlugins(gui) {
         new PrimalPreyPlugin(gui),
         new VivisectorPlugin(gui),
         new CityscapePlugin(gui),
+        new Prism3DPlugin(gui),
+        new ChasmPlugin(gui),
         new GenericPlugin(gui),
         // texture plugins
         new BrowserImagePlugin(gui),
