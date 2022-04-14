@@ -32,10 +32,10 @@ function gameLoop() {
 
     if (KeyFlags & kf.ToggleMap &&
         !(prevFrameKeyFlags & kf.ToggleMap)) {
-        if (minimap?.style.display === 'none') {
-            minimap.style.display = 'block'
-        } else {
+        if (minimap?.style.display.length && minimap?.style.display !== 'none') {
             minimap.style.display = 'none'
+        } else {
+            minimap.style.display = 'block'
         }
     }
     prevFrameKeyFlags = KeyFlags
