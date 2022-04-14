@@ -60,10 +60,10 @@ export class ChasmPlugin extends Plugin {
             const p = parsed.polygons[i]
             const a = p.indices[0], b = p.indices[1], c = p.indices[2], d = p.indices[3]
             const aUv = p.uvs[0], bUv = p.uvs[1], cUv = p.uvs[2], dUv = p.uvs[3]
-            addTriangle(a, b, c, aUv, bUv, cUv, p.vOffset)
+            addTriangle(c, b, a, cUv, bUv, aUv, p.vOffset)
             if (d !== 0xff) {
                 quads++
-                addTriangle(c, d, a, cUv, dUv, aUv, p.vOffset)
+                addTriangle(a, d, c, aUv, dUv, cUv, p.vOffset)
                 //addTriangle(a, c, d)
             } else {
                 tris++
