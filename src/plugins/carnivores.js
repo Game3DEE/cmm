@@ -11,6 +11,7 @@ import {
     MeshNormalMaterial,
     RGBAFormat,
     UnsignedByteType,
+    Vector3,
 } from 'three'
 
 import { DataType, Plugin } from './plugin.js'
@@ -192,33 +193,70 @@ export class CarnivoresPlugin extends Plugin {
         }
 
         const { position, uv } = model.geometry.attributes
-        // Loop over all triangles
-        for (let i = 0; i < position.count; i += 3) {
-            const indices = []
-            const uvs = []
-            // Get the tree indices (and collect uv while we're at it)
-            for (let j = 0; j < 3; j++) {
-                const x = position.getX(i + j),
-                    y = position.getY(i + j),
-                    z = position.getZ(i + j)
-                const vIdx = findOrAddVert(x,y,z)
-                indices.push( vIdx )
-                mapping.push( vIdx )
-                uvs.push(
-                    Math.floor(uv.getX(i + j) * 256),
-                    Math.floor(uv.getY(i + j) * 256),
-                )
+        const { index } = model.geometry
+        if (index) {
+            // Indexed geometry, we can keep things simple
+
+            // First, simply copy the vertices
+            let v = new Vector3()
+            for (let i = 0; i < position.count; i++) {
+                outModel.vertices.push({
+                    position: [ position.getX(i), position.getY(i), position.getZ(i) ],
+                    bone: 0,
+                    hide: 0,
+                })
             }
-            // Add the face
-            outModel.faces.push({
-                indices,
-                uvs,
-                flags: 0,
-                dmask: 0,
-                distant: 0,
-                next: 0,
-                group: 0,
-            })
+
+            // Now create the triangles
+            for (let i = 0; i < index.count; i += 3) {
+                // get vertex indices
+                const a = index.array[i+0], b = index.array[i+1], c = index.array[i+2]
+                mapping[a] = a
+                mapping[b] = b
+                mapping[c] = c
+                outModel.faces.push({
+                    indices: [ a, b, c ],
+                    uvs: [
+                        uv.getX(a) * 256, uv.getY(a) * 256,
+                        uv.getX(b) * 256, uv.getY(b) * 256,
+                        uv.getX(c) * 256, uv.getY(c) * 256,
+                    ],
+                    flags: 0,
+                    dmask: 0,
+                    distant: 0,
+                    next: 0,
+                    group: 0,
+                })
+            }
+        } else {
+            // Loop over all triangles
+            for (let i = 0; i < position.count; i += 3) {
+                const indices = []
+                const uvs = []
+                // Get the tree indices (and collect uv while we're at it)
+                for (let j = 0; j < 3; j++) {
+                    const x = position.getX(i + j),
+                        y = position.getY(i + j),
+                        z = position.getZ(i + j)
+                    const vIdx = findOrAddVert(x,y,z)
+                    indices.push( vIdx )
+                    mapping.push( vIdx )
+                    uvs.push(
+                        Math.floor(uv.getX(i + j) * 256),
+                        Math.floor(uv.getY(i + j) * 256),
+                    )
+                }
+                // Add the face
+                outModel.faces.push({
+                    indices,
+                    uvs,
+                    flags: 0,
+                    dmask: 0,
+                    distant: 0,
+                    next: 0,
+                    group: 0,
+                })
+            }
         }
 
         outModel.mapping = mapping
