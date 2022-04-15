@@ -103,7 +103,7 @@ export class Prism3DPlugin extends Plugin {
         const position = []
         const uvs = []
         const index = []
-
+        const groups = []
         parsed.objects.forEach(obj => {
             const idxOffset = position.length / 3
             // NOTE: not using forEach since `vertices` is duplicated for every morphtarget
@@ -113,6 +113,11 @@ export class Prism3DPlugin extends Plugin {
                 position.push(v.x * parsed.center.x, v.y * parsed.center.y, v.z * parsed.center.z)
                 uvs.push(uv.x, uv.y)
             }
+            groups.push({
+                start: index.length, // as long as this is before we update `index`, we're all good
+                count: obj.indices.length,
+                materialIndex: groups.length,
+            })
             obj.indices.forEach(i => index.push(idxOffset + i))
         })
 
@@ -139,6 +144,8 @@ export class Prism3DPlugin extends Plugin {
         geo.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
         geo.setIndex(index)
         geo.computeVertexNormals()
+        geo.computeBoundingBox()
+        groups.forEach(({start, count, materialIndex}) => geo.addGroup(start, count, materialIndex))
 
         if (morphVertices.length > 1) {
             // Add animation data
@@ -154,8 +161,13 @@ export class Prism3DPlugin extends Plugin {
             })
         }
        
-        const mat = new MeshNormalMaterial({ side: DoubleSide })
-        mat.name = baseName
+        const mat = []
+        parsed.objects.forEach((_,idx) => {
+            const { name } = parsed.objectHeaders[idx]
+            mat.push(
+                new MeshNormalMaterial({ name, side: DoubleSide })
+            )
+        })
         const mesh = new Mesh(geo, mat)
         mesh.name = baseName
 
