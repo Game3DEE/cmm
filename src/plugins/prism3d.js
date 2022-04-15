@@ -23,7 +23,7 @@ export class Prism3DPlugin extends Plugin {
     async loadFile(url, ext, baseName) {
         switch(ext) {
             case 'psm':
-                return this.loadModel(await this.loadFromURL(url), baseName)
+                return this.loadPSM(await this.loadFromURL(url), baseName)
             case 'pmd':
                 return this.loadPMD(await this.loadFromURL(url), baseName)
             case 'pmg':
@@ -132,7 +132,7 @@ export class Prism3DPlugin extends Plugin {
         ]
     }
 
-    loadModel(buffer, baseName) {
+    loadPSM(buffer, baseName) {
         const parsed = new PSM(new KaitaiStream(buffer))
         console.log(parsed)
 
