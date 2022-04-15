@@ -116,16 +116,70 @@ export class Prism3DPlugin extends Plugin {
             obj.indices.forEach(i => index.push(idxOffset + i))
         })
 
+        const morphVertices = []
+        for (let i = 0; i < parsed.morphTargetCount; i++) {
+            const frame = []
+            parsed.objects.forEach(obj => {
+                const vOff = i * obj.vertexCount
+                for (let j = 0; j < obj.vertexCount; j++) {
+                    const v = obj.vertices[vOff + j]
+                    frame.push(
+                        v.x * parsed.center.x,
+                        v.y * parsed.center.y,
+                        v.z * parsed.center.z
+                    )
+                }
+            })
+            morphVertices.push(frame)
+        }
+
+
         const geo = new BufferGeometry()
         geo.setAttribute('position', new Float32BufferAttribute(position, 3))
         geo.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
         geo.setIndex(index)
         geo.computeVertexNormals()
 
+        if (morphVertices.length > 1) {
+            // Add animation data
+            geo.morphAttributes.position = []
+            parsed.animationData.forEach((ani, idx) => {
+                const { name } = parsed.animations[idx]
+                let frIdx = 0
+                ani.indices.forEach(i => {
+                    const attr = new Float32BufferAttribute(morphVertices[i], 3)
+                    attr.name = `${name}.${frIdx++}`
+                    geo.morphAttributes.position.push(attr)
+                })
+            })
+        }
+       
         const mat = new MeshNormalMaterial({ side: DoubleSide })
         mat.name = baseName
         const mesh = new Mesh(geo, mat)
         mesh.name = baseName
+
+
+        if (morphVertices.length > 1) {
+            for (let i = 0; i < parsed.animationCount; i++) {
+                const ani = parsed.animations[i]
+                const seq = []
+                for (let i = 0; i < ani.frameCount; i++) {
+                    seq.push({
+                        name: `${ani.name}.${i}`,
+                        vertices: [], // seems unused
+                    })
+                }
+                const clip = AnimationClip.CreateFromMorphTargetSequence(
+                    `${ani.name}`,
+                    seq,
+                    ani.frameRate,
+                    false /*noLoop*/
+                )
+                clip.userData = { fps: ani.frameRate } // TODO: fix anim speed
+                mesh.animations.push(clip)
+            }
+        }
 
         return [
             { type: DataType.Model, model: mesh },
