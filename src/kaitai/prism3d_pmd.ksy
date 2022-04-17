@@ -26,14 +26,14 @@ seq:
     type: vector3f
   - id: bbox_max
     type: vector3f
-  - id: center # scale?
+  - id: scale
     type: vector3f
 
   - id: zeroes
     size: 192
 
-  - id: animations
-    type: animation
+  - id: animation_headers
+    type: animation_header
     repeat: expr
     repeat-expr: max_animations
 
@@ -42,8 +42,8 @@ seq:
     repeat: expr
     repeat-expr: object_count
 
-  - id: animation_data
-    type: animation_data(_index)
+  - id: animations
+    type: animation(_index)
     repeat: expr
     repeat-expr: animation_count
 
@@ -54,13 +54,13 @@ instances:
     value: 64
 
 types:
-  animation:
+  animation_header:
     seq:
       - id: frame_count
         type: u4
-      - id: time
+      - id: fps
         type: f4
-      - id: frame_rate
+      - id: duration
         type: f4
       - id: name
         type: strz
@@ -105,7 +105,7 @@ types:
       - id: val1
         type: u4
 
-  animation_data:
+  animation:
     params:
       - id: index
         type: u4
@@ -120,7 +120,7 @@ types:
         repeat-expr: frame_count
     instances:
       frame_count:
-        value: _root.animations[index].frame_count
+        value: _root.animation_headers[index].frame_count
 
   vector3i:
     seq:
