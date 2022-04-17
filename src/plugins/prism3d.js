@@ -55,7 +55,7 @@ export class Prism3DPlugin extends Plugin {
         geo.setIndex(index)
         geo.computeVertexNormals() // for now, should probably just use included normals
 
-        const mat = new MeshNormalMaterial()
+        const mat = new MeshNormalMaterial({ /*side: DoubleSide*/ })
         mat.name = baseName
         const mesh = new Mesh(geo, mat)
         mesh.name = baseName
