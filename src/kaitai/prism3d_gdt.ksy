@@ -4,25 +4,39 @@ meta:
   file-extension: gdt
   endian: le
   encoding: utf8
-  
+
 seq:
   - id: magic
     contents: "GEOM"
   - id: version
-    contents: "0006"
+    type: str
+    size: 4
   - id: model_count
     type: u4
   - id: models
     type: model
     repeat: expr
-    repeat-expr: model_count
+    repeat-expr: 13 # model_count
 
 types:
   model:
     seq:
-      - id: type
+      - id: flags
         type: u4
-      - size: 24
+      - id: block_s1
+        type: s2
+      - id: block_index
+        type: s2
+      - id: block_zero1
+        type: u4
+      - id: block_float1
+        type: f4
+      - id: block_float2
+        type: f4
+      - id: block_float3
+        type: f4
+      - id: block_float4
+        type: f4
       - id: vertex_count
         type: u2
       - id: index_count
@@ -43,14 +57,22 @@ types:
         type: uv
         repeat: expr
         repeat-expr: vertex_count
-      - id: unknown
-        type: u2
+      - id: xyzr_5d
+        type: f4
+        repeat: expr
+        repeat-expr: 4
+        if: flags == 0x5d
+      - id: extra_7d
+        type: f4
+        repeat: expr
+        repeat-expr: 9
+        if: flags == 0x7d
 
   uv:
     seq:
-      - id: normal
+      - id: vector
         type: vector3f
-        if: _parent.type != 349
+        if: _parent.flags != 0x5d
       - id: u
         type: f4
       - id: v
