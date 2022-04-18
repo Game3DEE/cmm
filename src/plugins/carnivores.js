@@ -3,6 +3,7 @@
 
 import {
     AnimationClip,
+    Bone,
     BufferGeometry,
     DataTexture,
     Float32BufferAttribute,
@@ -10,6 +11,9 @@ import {
     MeshBasicMaterial,
     MeshNormalMaterial,
     RGBAFormat,
+    Skeleton,
+    SkeletonHelper,
+    SkinnedMesh,
     UnsignedByteType,
     Vector3,
 } from 'three'
@@ -516,7 +520,32 @@ export class CarnivoresPlugin extends Plugin {
 
         const mat = tex ? new MeshBasicMaterial({ map: tex }) : new MeshNormalMaterial()
 
-        let obj = new Mesh(geo, mat)
+        let obj;
+        if (model.bones?.length > 1) {
+            let v1 = new Vector3(), v2 = new Vector3()
+            const bones = []
+            model.bones.forEach(bone => {
+                const b = new Bone()
+                b.name = bone.name.toLowerCase()
+                v1.fromArray(bone.position)
+                const parent = bone.parent
+                if (parent !== -1) {
+                    v2.fromArray(model.bones[parent].position)
+                    v1.sub(v2)
+                    bones[parent].add(b)
+                }
+                b.position.copy(v1)
+                bones.push(b)
+            })
+            obj = new SkinnedMesh( geo, mat );
+            const skeleton = new Skeleton( bones );
+            obj.add( skeleton.bones[ 0 ] );
+            obj.bind( skeleton );
+        } else {
+            obj = new Mesh(geo, mat)
+        }
+        obj.name = baseName
+
         if (totalFrames) {
             animations.forEach(ani => {
                 const seq = []

@@ -9,6 +9,7 @@ import {
     MeshNormalMaterial,
     PerspectiveCamera,
     Scene,
+    SkeletonHelper,
     WebGLRenderer,
  } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -21,6 +22,8 @@ let camera, scene, renderer, stats, controls, grid, axes, fileButton
 let clock = new Clock()
 // GUI elements
 let gui, materialFolder, animationsFolder
+// Skeleton GUI
+let skelGUI, skelHelper
 // model info
 let faceCountSpan, modelNameSpan
 // plugin data
@@ -34,6 +37,7 @@ const textures = [] // list of currently loaded textures
 const settings = {
     axes: true,
     grid: true,
+    skeleton: true,
     wireframe: false,
     mode: 0,
 }
@@ -43,7 +47,13 @@ function setModel(newModel, plug) {
     if (plug.isMode() && plugIdx !== -1) {
         settings.mode = plugIdx
     }
-    if (model) scene.remove(model)
+    if (model) {
+        scene.remove(model)
+        if (skelHelper) {
+            scene.remove(skelHelper)
+            skelHelper = null
+        }
+    }
     model = newModel
 
     activePlugin?.deactivate()
@@ -57,6 +67,16 @@ function setModel(newModel, plug) {
         scene.add(model)
 
         mixer = new AnimationMixer(model)
+    }
+
+    // hide or show "Show Skeleton"
+    if (model?.isSkinnedMesh) {
+        skelGUI.enable()
+        skelHelper = new SkeletonHelper(model)
+        skelHelper.visible = settings.skeleton
+        scene.add(skelHelper)
+    } else {
+        skelGUI.disable()
     }
 
     updateMaterials()
@@ -237,6 +257,7 @@ function initGUI() {
             m.needsUpdate = true
         })
     })
+    skelGUI = guiFolder.add(settings, 'skeleton').name('Show Skeleton').onChange(v => skelHelper.visible = v)
     guiFolder.close()
 
     materialFolder = gui.addFolder('Materials')

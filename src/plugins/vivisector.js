@@ -235,8 +235,6 @@ export class VivisectorPlugin extends Plugin {
             const skeleton = new Skeleton( bones );
             mesh.add( skeleton.bones[ 0 ] );
             mesh.bind( skeleton );
-
-            mesh.add( new SkeletonHelper(mesh) )
         } else {
             mesh = new Mesh(geo, mat)
         }
