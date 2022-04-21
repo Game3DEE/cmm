@@ -68,7 +68,7 @@ export class Quickdraw3DPlugin extends Plugin {
 
         const geo = this.activeModel.geometry
         geo.setAttribute('position', new Float32BufferAttribute(position, 3))
-        geo.deleteAttribute('normal')
+        geo.deleteAttribute('normal') // work around bug in computeVertexNormals()
         geo.setIndex(index)
         geo.computeVertexNormals()
 
