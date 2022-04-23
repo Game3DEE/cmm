@@ -207,9 +207,36 @@ export class CarnivoresPlugin extends Plugin {
             texture: null,
         }
 
+        let skinIndex = null;
+        if (model.isSkinnedMesh && model.skeleton) {
+            skinIndex = model.geometry.getAttribute('skinIndex') // u16[4]
+            const skeleton = model.skeleton
+
+            // in case we're animating, simply switch to 't-pose' so bones
+            // are all in original start position
+            model.pose()
+
+            const bonePos = new Vector3()
+            skeleton.bones.forEach(o => {
+                const findBoneIndex = name => { // Returns index of bone, or -1 if not found
+                    return model.skeleton.bones.findIndex(b => b.name === name)
+                }
+
+                bonePos.set(0,0,0)
+                model.worldToLocal(o.localToWorld(bonePos)) // bone => world => model
+
+                const bone = {
+                    name: o.name,
+                    parent: o.parent.isBone ? findBoneIndex(o.parent.name) : -1,
+                    position: bonePos.toArray(),
+                }
+                outModel.bones.push(bone)
+            })
+        }
+
         const mapping = []
 
-        const findOrAddVert = (x,y,z) => {
+        const findOrAddVert = (x,y,z, bone) => {
             for (let i = 0; i < outModel.vertices.length; i++) {
                 const v = outModel.vertices[i].position
                 if (v[0] === x && v[1] === y && v[2] === z) {
@@ -220,7 +247,7 @@ export class CarnivoresPlugin extends Plugin {
             const index = outModel.vertices.length
             outModel.vertices.push({
                 position: [ x, y, z ],
-                bone: 0,
+                bone,
                 hide: 0,
             })
 
@@ -237,7 +264,7 @@ export class CarnivoresPlugin extends Plugin {
             for (let i = 0; i < position.count; i++) {
                 outModel.vertices.push({
                     position: [ position.getX(i), position.getY(i), position.getZ(i) ],
-                    bone: 0,
+                    bone: skinIndex ? skinIndex.getX(i) : -1,
                     hide: 0,
                 })
             }
@@ -268,12 +295,13 @@ export class CarnivoresPlugin extends Plugin {
             for (let i = 0; i < position.count; i += 3) {
                 const indices = []
                 const uvs = []
-                // Get the tree indices (and collect uv while we're at it)
+                // Get the three indices (and collect uv while we're at it)
                 for (let j = 0; j < 3; j++) {
                     const x = position.getX(i + j),
                         y = position.getY(i + j),
                         z = position.getZ(i + j)
-                    const vIdx = findOrAddVert(x,y,z)
+                    const boneIndex = skinIndex ? skinIndex.getX(i + j) : -1
+                    const vIdx = findOrAddVert(x,y,z, boneIndex)
                     indices.push( vIdx )
                     mapping.push( vIdx )
                     uvs.push(
