@@ -1,22 +1,27 @@
+import {
+  Box3,
+  Vector3,
+} from 'three'
+
 export function downloadBlob(data, fileName, mimeType = 'application/octet-stream') {
-    const blob = new Blob([data], {
-      type: mimeType
-    })
-    const url = window.URL.createObjectURL(blob)
-    downloadURL(url, fileName)
-    setTimeout(() => {
-      return window.URL.revokeObjectURL(url)
-    }, 1000)
+  const blob = new Blob([data], {
+    type: mimeType
+  })
+  const url = window.URL.createObjectURL(blob)
+  downloadURL(url, fileName)
+  setTimeout(() => {
+    return window.URL.revokeObjectURL(url)
+  }, 1000)
 }
 
 function downloadURL(data, fileName) {
-    let a = document.createElement('a')
-    a.href = data
-    a.download = fileName
-    document.body.appendChild(a)
-    a.style = 'display: none'
-    a.click()
-    a.remove()
+  let a = document.createElement('a')
+  a.href = data
+  a.download = fileName
+  document.body.appendChild(a)
+  a.style = 'display: none'
+  a.click()
+  a.remove()
 }
 
 export const clamp = (num, min, max) => Math.min(Math.max(num, min), max)
@@ -31,11 +36,45 @@ export function imgToImageData(img) {
 export function onMobile() {
   const ua = navigator.userAgent;
   if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
-      return true // tablet
+    return true // tablet
   }
   else if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
-      return true // phone?
+    return true // phone?
   }
 
   return false // desktop
+}
+
+// Shamelessly grabbed from https://github.com/mrdoob/three.js/issues/6784
+export const zoomExtents = (camera, object1, orbit) => {
+  let vFoV = camera.getEffectiveFOV();
+  let hFoV = camera.fov * camera.aspect;
+
+  let FoV = Math.min(vFoV, hFoV);
+  let FoV2 = FoV / 2;
+
+  let dir = new Vector3();
+  camera.getWorldDirection(dir);
+
+  object1.geometry.computeBoundingSphere()
+  let bs = object1.geometry.boundingSphere;
+  let bsWorld = bs.center.clone();
+  object1.localToWorld(bsWorld);
+
+  let th = FoV2 * Math.PI / 180.0;
+  let sina = Math.sin(th);
+  let R = bs.radius;
+  let FL = R / sina;
+
+  let cameraDir = new Vector3();
+  camera.getWorldDirection(cameraDir);
+
+  let cameraOffs = cameraDir.clone();
+  cameraOffs.multiplyScalar(-FL);
+  let newCameraPos = bsWorld.clone().add(cameraOffs);
+
+  camera.position.copy(newCameraPos);
+  camera.lookAt(bsWorld);
+  orbit.target.copy(bsWorld);
+  orbit.update();
 }

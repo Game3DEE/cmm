@@ -16,6 +16,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import { DataType, setupPlugins } from './plugins/index.js'
+import { zoomExtents } from './utils.js'
 
 // Basic UI elements
 let camera, scene, renderer, stats, controls, grid, axes, fileButton
@@ -220,7 +221,10 @@ async function openFile(url, name) {
                             break
                     }
                 })
-                newModel && setModel(newModel, plug)
+                if (newModel) {
+                    setModel(newModel, plug)
+                    model && zoomExtents(camera, model, controls)
+                }
                 if (newTextures.length) {
                     addNewTextures(newTextures)
                     updateMaterials()
