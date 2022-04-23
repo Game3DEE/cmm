@@ -419,12 +419,15 @@ export class CarnivoresPlugin extends Plugin {
                 this.lastFaceIndex = i.faceIndex
             }
 
+            this.triangleHilite.visible = true
             if (this.triangleHilite.parent !== this.activeModel) {
                 this.activeModel.add(this.triangleHilite)
             }
 
             return i
         }
+
+        this.triangleHilite.visible = false
 
         return null
     }
