@@ -71,6 +71,7 @@ export const zoomExtents = (camera, object1, orbit) => {
 
   let cameraOffs = cameraDir.clone();
   cameraOffs.multiplyScalar(-FL);
+  cameraOffs.z *= -1
   let newCameraPos = bsWorld.clone().add(cameraOffs);
 
   camera.position.copy(newCameraPos);
