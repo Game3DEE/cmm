@@ -416,6 +416,7 @@ export class CarnivoresPlugin extends Plugin {
             flagsFolder.add(this.guiOps, 'sfMortal').listen().onChange(v => setBitFlag(16, v)).disable()
             flagsFolder.add(this.guiOps, 'sfPhong').listen().onChange(v => setBitFlag(32, v)).disable()
             flagsFolder.add(this.guiOps, 'sfEnvMap').listen().onChange(v => setBitFlag(64, v)).disable()
+            flagsFolder.close()
         }
         this.activeModel = model
     }
