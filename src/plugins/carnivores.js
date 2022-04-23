@@ -353,10 +353,12 @@ export class CarnivoresPlugin extends Plugin {
             this.triangleSelected.visible = turnOn
             if (turnOn) {
                     flagsFolder.controllersRecursive().forEach(c => c.enable())
+                    flagsFolder.open()
                     document.addEventListener('mousemove', this.mouseMovedHandler)
                     document.addEventListener('mousedown', this.mouseDownHandler)
                 } else {
                     flagsFolder.controllersRecursive().forEach(c => c.disable())
+                    flagsFolder.close()
                     document.removeEventListener('mousemove', this.mouseMovedHandler)
                     document.removeEventListener('mousedown', this.mouseDownHandler)
                 }
