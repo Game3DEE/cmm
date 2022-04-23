@@ -766,7 +766,7 @@ export class CarnivoresPlugin extends Plugin {
         let tex = this.activeModel?.material?.map
 
         // bail out if no current texture
-        if (!tex) return undefined
+        if (!tex || !tex.image) return undefined
     
         // Convert 32-bit RGBA texture to RGB565 texture
         const { width, height, data } = tex.image
