@@ -6,13 +6,14 @@ import {
     Bone,
     BufferGeometry,
     DataTexture,
+    DoubleSide,
     Float32BufferAttribute,
     Mesh,
     MeshBasicMaterial,
     MeshNormalMaterial,
+    Raycaster,
     RGBAFormat,
     Skeleton,
-    SkeletonHelper,
     SkinnedMesh,
     UnsignedByteType,
     Vector3,
@@ -32,12 +33,44 @@ import { loadCRT } from '../formats/crt.js'
 import { saveTGA } from '../formats/tga.js'
 
 export class CarnivoresPlugin extends Plugin {
-    constructor(gui) {
+    constructor(gui, camera) {
         super(gui)
+
+        this.mouseMovedHandler = ev => this.hiliteTriangle(ev)
+        this.mouseDownHandler = ev => this.selectTriangle(ev)
+        this.raycaster = new Raycaster()
+        this.mouse = new Vector3()
+        this.camera = camera
+        const geo = new BufferGeometry()
+        geo.setAttribute('position', new Float32BufferAttribute([0,0,0, 0,0,0, 0,0,0], 3))
+        geo.setIndex([0,1,2])
+        this.triangleHilite = new Mesh(geo, new MeshBasicMaterial({ color: 'red', opacity: 0.5, transparent: true, side: DoubleSide }))
+        this.triangleHilite.name = 'trihilite'
+        this.triangleHilite.renderOrder = 1000
+        this.triangleHilite.material.depthTest = false
+        this.triangleHilite.frustumCulled = false
+        this.selectedFaceIndex = -1
+
+        this.triangleSelected = new Mesh(geo.clone(), new MeshBasicMaterial({ color: 'blue', opacity: 0.5, transparent: true, side: DoubleSide }))
+        this.triangleSelected.name = 'triSelect'
+        this.triangleSelected.renderOrder = 1000
+        this.triangleSelected.material.depthTest = false
+        this.triangleHilite.frustumCulled = false
 
         this.customGui = null
         this.activeModel = null
         this.guiOps = {
+            // Enable/disable flag editing mode
+            flagEdit: false,
+            // flag status of current triangle
+            sfDoubleSided: false,
+            sfDarkBack: false,
+            sfOpacity: false,
+            sfTransparent: false,
+            sfMortal: false,
+            sfPhong: false,
+            sfEnvMap: false,
+
             export3DF: () => {
                 const model = this.activeModel.userData.cpmData
                 const out = save3DF({ ...model, texture: this.createTexture565(), })
@@ -77,14 +110,12 @@ export class CarnivoresPlugin extends Plugin {
             'export VTL': function() {
                 if (this.current) { // an animation is active
                     const anim = self.convertAnimation(this.current-1)
-                    console.log(anim)
                     downloadBlob(saveVTL(anim), `${anim.name}.vtl`)
                 }
             },
             'export ANI': function() {
                 if (this.current) { // an animation is active
                     const anim = self.convertAnimation(this.current-1)
-                    console.log(anim)
                     downloadBlob(saveANI(anim), `${anim.name}.ani`)
                 }
             },
@@ -317,14 +348,121 @@ export class CarnivoresPlugin extends Plugin {
     // also called on new model load (from the same plugin)
     activate(model) {
         if (!this.customGui) {
+            const editFlagsChanged = turnOn => {
+            this.triangleHilite.visible = turnOn
+            this.triangleSelected.visible = turnOn
+            if (turnOn) {
+                    flagsFolder.controllersRecursive().forEach(c => c.enable())
+                    document.addEventListener('mousemove', this.mouseMovedHandler)
+                    document.addEventListener('mousedown', this.mouseDownHandler)
+                } else {
+                    flagsFolder.controllersRecursive().forEach(c => c.disable())
+                    document.removeEventListener('mousemove', this.mouseMovedHandler)
+                    document.removeEventListener('mousedown', this.mouseDownHandler)
+                }
+            }
             this.customGui = this.gui.addFolder('Carnivores')
             this.customGui.add(this.guiOps, 'export3DF').name('Export 3DF')
             this.customGui.add(this.guiOps, 'export3DN').name('Export 3DN')
             this.customGui.add(this.guiOps, 'exportCAR').name('Export CAR')
             this.customGui.add(this.guiOps, 'exportTGA32').name('Export 32-bit TGA')
             this.customGui.add(this.guiOps, 'exportTGA16').name('Export 16-bit TGA')
+            this.customGui.add(this.guiOps, 'flagEdit').name('Edit Flags').onChange(editFlagsChanged)
+            const flagsFolder = this.customGui.addFolder('Flags')
+            const setBitFlag = (bit, turnOn) => {
+                const cpmData = this.activeModel?.userData.cpmData
+                if (cpmData && this.guiOps.flagEdit) {
+                    if (turnOn) {
+                        cpmData.faces[this.selectedFaceIndex].flags |= bit
+                    } else {
+                        cpmData.faces[this.selectedFaceIndex].flags &= ~bit
+                    }
+                }
+            }
+            flagsFolder.add(this.guiOps, 'sfDoubleSided').listen().onChange(v => setBitFlag(1, v)).disable()
+            flagsFolder.add(this.guiOps, 'sfDarkBack').listen().onChange(v => setBitFlag(2, v)).disable()
+            flagsFolder.add(this.guiOps, 'sfOpacity').listen().onChange(v => setBitFlag(4, v)).disable()
+            flagsFolder.add(this.guiOps, 'sfTransparent').listen().onChange(v => setBitFlag(8, v)).disable()
+            flagsFolder.add(this.guiOps, 'sfMortal').listen().onChange(v => setBitFlag(16, v)).disable()
+            flagsFolder.add(this.guiOps, 'sfPhong').listen().onChange(v => setBitFlag(32, v)).disable()
+            flagsFolder.add(this.guiOps, 'sfEnvMap').listen().onChange(v => setBitFlag(64, v)).disable()
         }
         this.activeModel = model
+    }
+
+    hiliteTriangle(ev) {
+        this.mouse.x = ( ev.clientX / window.innerWidth ) * 2 - 1
+        this.mouse.y = - ( ev.clientY / window.innerHeight ) * 2 + 1
+
+        // update the picking ray with the camera and pointer position
+        this.raycaster.setFromCamera(this.mouse, this.camera)
+
+        // calculate objects intersecting the picking ray
+        const intersects = this.raycaster.intersectObject(this.activeModel)
+        if (intersects.length > 0) {
+            const hiPos = this.triangleHilite.geometry.getAttribute('position')
+            const mdlPos = this.activeModel.geometry.getAttribute('position')
+            const i = intersects[0]
+            if (i.faceIndex !== this.lastFaceIndex) {
+                hiPos.array[0] = mdlPos.array[i.face.a * 3 + 0]
+                hiPos.array[1] = mdlPos.array[i.face.a * 3 + 1]
+                hiPos.array[2] = mdlPos.array[i.face.a * 3 + 2]
+                hiPos.array[3] = mdlPos.array[i.face.b * 3 + 0]
+                hiPos.array[4] = mdlPos.array[i.face.b * 3 + 1]
+                hiPos.array[5] = mdlPos.array[i.face.b * 3 + 2]
+                hiPos.array[6] = mdlPos.array[i.face.c * 3 + 0]
+                hiPos.array[7] = mdlPos.array[i.face.c * 3 + 1]
+                hiPos.array[8] = mdlPos.array[i.face.c * 3 + 2]
+                hiPos.needsUpdate = true
+                this.lastFaceIndex = i.faceIndex
+            }
+
+            if (this.triangleHilite.parent !== this.activeModel) {
+                this.activeModel.add(this.triangleHilite)
+            }
+
+            return i
+        }
+
+        return null
+    }
+
+    setFlags(flags) {
+        this.guiOps.sfDoubleSided = (flags & 1) !== 0
+        this.guiOps.sfDarkBack = (flags & 2) !== 0
+        this.guiOps.sfOpacity =  (flags & 4) !== 0
+        this.guiOps.sfTransparent = (flags & 8) !== 0
+        this.guiOps.sfMortal = (flags & 16) !== 0
+        this.guiOps.sfPhong =  (flags & 32) !== 0
+        this.guiOps.sfEnvMap =  (flags & 64) !== 0
+    }
+
+    getFlags() {
+        return  this.guiOps.sfDoubleSided   ?  1 : 0 |
+                this.guiOps.sfDarkBack      ?  2 : 0 |
+                this.guiOps.sfOpacity       ?  4 : 0 |
+                this.guiOps.sfTransparent   ?  8 : 0 |
+                this.guiOps.sfMortal        ? 16 : 0 |
+                this.guiOps.sfPhong         ? 32 : 0 |
+                this.guiOps.sfEnvMap        ? 64 : 0
+            ;
+    }
+
+    selectTriangle(ev) {
+        // Determine triangle and hit pos, show selected triangle
+        const i = this.hiliteTriangle(ev)
+        if (i && ev.buttons === 1) {
+            this.triangleSelected.geometry = this.triangleHilite.geometry.clone()
+            this.triangleSelected.geometry.needsUpdate = true
+
+            if (this.triangleSelected.parent !== this.activeModel) {
+                this.activeModel.add(this.triangleSelected)
+            }
+
+            const { flags } = this.activeModel.userData.cpmData.faces[i.faceIndex]
+            this.selectedFaceIndex = i.faceIndex
+            this.setFlags(flags)
+        }
     }
 
     async loadCRT(url, baseName) {

@@ -12,10 +12,10 @@ import { Quickdraw3DPlugin } from './quickdraw3d.js'
 import { GenericPlugin } from './generic.js'
 export { DataType } from './plugin.js'
 
-export function setupPlugins(gui) {
+export function setupPlugins(gui, camera) {
     return [
         // mode plugins
-        new CarnivoresPlugin(gui),
+        new CarnivoresPlugin(gui, camera),
         new PrimalPreyPlugin(gui),
         new VivisectorPlugin(gui),
         new CityscapePlugin(gui),

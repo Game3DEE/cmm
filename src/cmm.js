@@ -267,7 +267,7 @@ function initGUI() {
 }
 
 function initPlugins() {
-    plugins.push.apply(plugins, setupPlugins(gui))
+    plugins.push.apply(plugins, setupPlugins(gui, camera))
 
     // build list of modes
     const modes = {}
