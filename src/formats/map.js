@@ -132,3 +132,62 @@ export function loadMAP(buffer) {
         ambientMap,
     }
 }
+
+export function saveMAP(map) {
+    const mapBytes = map.size * map.size
+    const outSize = mapBytes + // heightmap
+        mapBytes * 2 + // texturemap 1
+        mapBytes * 2 + // texturemap 2
+        mapBytes + // object map
+        mapBytes * 2 + // texture flags 1 & 2
+        mapBytes + // dawn lightmap
+        mapBytes + // day lightmap
+        mapBytes + // night lightmap
+        mapBytes + // water map
+        mapBytes + // object height map
+        mapBytes / 4 + // fog map
+        mapBytes / 4 + // ambient map
+        0
+
+
+    const outbuf = new ArrayBuffer(outSize)
+    const dv = new DataView(outbuf)
+    let offset = 0
+
+    function writeArray(arr, count, bytesPerValue = 1) {
+        for (let i = 0; i < count; i++) {
+            if (bytesPerValue == 1) {
+                dv.setUint8(offset, arr[i])
+            } else if (bytesPerValue == 2) {
+                dv.setUint16(offset, arr[i])
+            } else {
+                throw new Error(`Invalid bytesPerValue=${bytesPerValue}`)
+            }
+            offset += bytesPerValue
+        }
+    }
+
+    writeArray(map.heightMap, mapBytes)
+    writeArray(map.tex1Map, mapBytes, 2)
+    writeArray(map.tex2Map, mapBytes, 2)
+    writeArray(map.objectMap, mapBytes)
+
+    // Write flags
+    for (let i = 0; i < mapBytes; i++) {
+        dv.setUint16(offset, map.flags1[i] | (map.flags2[i] << 8))
+        offset += 2
+    }
+
+    writeArray(map.dawnShadows, mapBytes)
+    writeArray(map.dayShadows, mapBytes)
+    writeArray(map.nightShadows, mapBytes)
+
+    writeArray(map.waterMap, mapBytes)
+    writeArray(map.objectHeightMap, mapBytes)
+    writeArray(map.fogMap, mapBytes / 4)
+    writeArray(map.ambientMap, mapBytes / 4)
+
+    console.log(outbuf.byteLength, offset)
+
+    return outbuf
+}
