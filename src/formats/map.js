@@ -187,7 +187,5 @@ export function saveMAP(map) {
     writeArray(map.fogMap, mapBytes / 4)
     writeArray(map.ambientMap, mapBytes / 4)
 
-    console.log(outbuf.byteLength, offset)
-
     return outbuf
 }
