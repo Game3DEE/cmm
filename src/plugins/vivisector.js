@@ -129,10 +129,14 @@ export class VivisectorPlugin extends Plugin {
                     if (!indices)
                         indices = b.data.indices
                     break
+                case CMF.BlockId.FACE_COUNT:
+                case CMF.BlockId.VERT_COUNT:
+                case CMF.BlockId.BONE_COUNT:
+                    console.log(b.data)
             }
         })
 
-        console.log(boneNames)
+        console.log(faces, vertices, indices)
 
         const position = []
         const uv = []
@@ -143,12 +147,11 @@ export class VivisectorPlugin extends Plugin {
         let matId = -1
         faces?.forEach((f,i) => {
             if (f.c !== f.d) {
-                console.error(`CMF FACES block has face width ${f.c} !== ${f.d} at ${i}`)
+                console.error(`CMF FACES block has face with ${f.c} !== ${f.d} at ${i}`)
                 return
             }
 
             if (matId !== indices[i]) {
-                console.log(`${matId} !== ${indices[i]}`)
                 if (matId !== -1) {
                     const grp = groups[groups.length -1]
                     grp.count = (i * 3 - grp.start)
@@ -206,7 +209,7 @@ export class VivisectorPlugin extends Plugin {
         })
 
         let mesh;
-        if (boneNames && boneParents && bonePos && boneTransforms) {
+        if (boneNames?.length > 1 && boneParents && bonePos && boneTransforms) {
             let v1 = new Vector3(), v2 = new Vector3()
             const bones = []
             for (let i = 0; i < boneNames.length; i++) {
