@@ -71,6 +71,11 @@ export class CarnivoresPlugin extends Plugin {
             sfPhong: false,
             sfEnvMap: false,
 
+            scaleFactor: 1,
+            scale: () => {
+                this.scaleModelAndAnims(this.guiOps.scaleFactor)
+            },
+
             export3DF: () => {
                 const model = this.activeModel.userData.cpmData
                 const out = save3DF({ ...model, texture: this.createTexture565(), })
@@ -124,6 +129,39 @@ export class CarnivoresPlugin extends Plugin {
 
     animationOptions() {
         return this.animationOpts
+    }
+
+    scaleModelAndAnims(factor) {
+        // Scale base geometry
+        this.activeModel.geometry.scale(factor, factor, factor)
+
+        // Now also scale the imported data, as we're still using that on export for the base model :(
+        const { cpmData } = this.activeModel.userData
+        cpmData.vertices.forEach(v => {
+            v.position[0] *= factor
+            v.position[1] *= factor
+            v.position[2] *= factor
+        })
+
+        // Scale animation vertices
+        const newPosition = []
+        const { position } = this.activeModel.geometry.morphAttributes
+        position?.forEach(attr => {
+            const array = []
+            for (let i = 0; i < attr.array.length; i++) {
+                let v = attr.array[i] * factor
+                v = Math.floor(v * 16) / 16 // round for conversion to signed int16 later
+                array.push(v)
+            }
+            const newAttr = new Float32BufferAttribute(array, 3)
+            newAttr.name = attr.name
+            newAttr.needsUpdate = true
+            newPosition.push(newAttr)
+        })
+
+        this.activeModel.geometry.morphAttributes.position = newPosition
+        this.activeModel.geometry = this.activeModel.geometry.clone()
+        this.activeModel.updateMorphTargets()
     }
 
     convert(model) {
@@ -417,6 +455,8 @@ export class CarnivoresPlugin extends Plugin {
             flagsFolder.add(this.guiOps, 'sfPhong').listen().onChange(v => setBitFlag(32, v)).disable()
             flagsFolder.add(this.guiOps, 'sfEnvMap').listen().onChange(v => setBitFlag(64, v)).disable()
             flagsFolder.close()
+            this.customGui.add(this.guiOps, 'scaleFactor')
+            this.customGui.add(this.guiOps, 'scale')
         }
         this.activeModel = model
     }
