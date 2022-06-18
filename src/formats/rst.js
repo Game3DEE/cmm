@@ -1,4 +1,6 @@
-// TODO parse random_sound_id items correctly
+// NOTE: This code is horrific and should be turned into a more simple
+//       recursive parser if it is ever seriously used. This is just good
+//       enough to create my Mobile => Desktop map converter.
 
 function parseValue(val) {
     // detect a string
@@ -21,8 +23,13 @@ function parseValue(val) {
 }
 
 export function loadRST(str) {
+    // The following generates lines as:
+    //  - all non-empty lines
+    //  - stripped of spaces at the end of the line
+    //  - as an array
     const lines = str.split('\n').map(s => s.trimEnd()).filter(s => s.trim().length > 0)
-    const map = {}
+    const map = {} // object map returned
+    let parent = null
 
     if (lines[0] !== 'carnivores_area_resources') {
         throw new Error(`Invalid RST file`)
@@ -33,35 +40,55 @@ export function loadRST(str) {
     // Go over all lines in file...
     let group
     let listItem
+    let subListItem
+    let subListName
     lines.forEach(l => {
         if (l[0] === '[') {
             // we're starting in a new "group" of settings
             const m = l.match(/^\[([a-z]+)\]$/i)
             if (!m) throw new Error(`Error in group format`)
             group = m[1]
-            map[group] = {}
+            parent = map[group] = {}
         } else {
             // Check for simple field assignment
             const m = l.match(/^([a-z_]+)\s\=\s(.*)$/i)
             if (m) {
                 // got it, add it to the group
-                map[group][m[1]] = parseValue(m[2])
+                const val = parseValue(m[2])
+                parent[m[1]] = val
             } else {
                 // check for list item
                 const m = l.match(/^([a-z_]+)\s+([0-9]+)$/i)
                 if (m) {
                     listItem = parseInt(m[2])
-                    if (map[group].list === undefined) {
-                        map[group].list = []
+                    if (parent.list === undefined) {
+                        parent.list = []
                     }
-                    map[group].list[listItem] = {}
+                    parent.list[listItem] = {}
+                    subListItem = subListName = undefined
                 } else {
                     // nope, then it is a list item field assignment
                     const m = l.match(/^\s+([a-z_]+)\s\=\s(.*)$/i)
                     if (m) {
-                        map[group].list[listItem][m[1]] = parseValue(m[2])
+                        const val = parseValue(m[2])
+                        if (!subListName) {
+                            parent.list[listItem][m[1]] = val
+                        } else {
+                            parent.list[listItem][subListName][subListItem][m[1]] = val
+                        }                       
                     } else {
-                        console.log(`Unable to parse line "${l}"`)
+                        // check for sub list item
+                        const m = l.match(/^\s+([a-z_]+)_id\s+([0-9]+)$/i)
+                        if (m) {
+                            subListItem = parseInt(m[2])
+                            subListName = m[1]
+                            if (parent.list[listItem][subListName] === undefined) {
+                                parent.list[listItem][subListName] = []
+                            }
+                            parent.list[listItem][subListName][subListItem] = {}
+                        } else {
+                            console.log(`Unable to parse line "${l}"`)
+                        }
                     }
                 }
             }
