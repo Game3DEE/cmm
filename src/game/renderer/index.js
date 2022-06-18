@@ -29,7 +29,7 @@ export function initRenderer(map, rsc, compass, wind) {
     initScene()
 
     // TODO: make a cubetexture somehow?
-    const skyTex = buildTexture565(rsc.skyTexture, 256 * 256 * 2)
+    const skyTex = buildTexture565(rsc.daySkyTexture, 256 * 256 * 2)
     scene.background = skyTex
 
     // Create terrain
