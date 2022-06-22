@@ -118,7 +118,7 @@ function loadMapSound(name) {
     return new Promise((resolve, reject) => {
         exec(`ffmpeg -y -i "${input}" -f s16le -acodec pcm_s16le ${name}.raw`, (err, stdout, stderr) => {
             if (err) {
-                console.log(stdout, stderr)
+                console.log('ffmpeg error:', stdout, stderr)
                 reject(err)
             }
             resolve( fs.readFileSync(`${name}.raw`) )
@@ -190,35 +190,42 @@ async function generateTerrainTextureData(tileTexBaseName, tilesPerRow, tilesPer
 }
 
 function generatePRJ(rsc) {
-    const texCount = rsc.textures.length / (128 * 128)
+    const texCount = rsc.textureCount
     let prj = 'Version=6\n'
 
     // Generate texture list
-    prj += `Total textures=${texCount}\n`
-    for (let i = 0; i < texCount; i++) {
-        prj += `Texture${("000" + i).slice(-3)}=${areaName}_tile_${i}\n`
+    prj += `Total textures=${rsc.textureCount}\n`
+    for (let i = 1; i <= rsc.textureCount; i++) {
+        const num = ("000" + i).slice(-3)
+        prj += `Texture${num}=Texture${num}\n`
     }
     // Generate object list
     prj += `Total objects=${rsc.objects.length}\n`
-    for (let i = 0; i < rsc.objects.length; i++) {
-        prj += `Object${("000" + i).slice(-3)}=${areaName}_obj_${i}\n`
+    for (let i = 1; i <= rsc.objects.length; i++) {
+        const num = ("000" + i).slice(-3)
+        prj += `Object${num}=Object${num}\n`
     }
-    // Set sky & version
+
+    // Set sky info
     prj += `Sky loaded=1\nSky map loaded=1\n`
+
     // Generate fog list
     prj += `Total fog=${rsc.fogs.length}\n`
-    for (let i = 0; i < rsc.fogs.length; i++) {
-        prj += `Fog${("000" + i).slice(-3)}=${areaName}_fog_${i}\n`
+    for (let i = 1; i <= rsc.fogs.length; i++) {
+        const num = ("000" + i).slice(-3)
+        prj += `Fog${num}=Fog${num}\n`
     }
     // Generate random sound list
     prj += `Total random sound=${rsc.randomSounds.length}\n`
-    for (let i = 0; i < rsc.randomSounds.length; i++) {
-        prj += `Random${("000" + i).slice(-3)}=${areaName}_random_${i}\n`
+    for (let i = 1; i <= rsc.randomSounds.length; i++) {
+        const num = ("000" + i).slice(-3)
+        prj += `Random${num}=Random${num}\n`
     }
     // Generate ambient sound list
     prj += `Total ambient sound=${rsc.randomSounds.length}\n`
-    for (let i = 0; i < rsc.randomSounds.length; i++) {
-        prj += `Ambient${("000" + i).slice(-3)}=${areaName}_ambient_${i}\n`
+    for (let i = 1; i <= rsc.randomSounds.length; i++) {
+        const num = ("000" + i).slice(-3)
+        prj += `Ambient${num}=Ambient${num}\n`
     }
 
     return prj
