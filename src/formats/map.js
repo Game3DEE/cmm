@@ -159,7 +159,7 @@ export function saveMAP(map) {
             if (bytesPerValue == 1) {
                 dv.setUint8(offset, arr[i])
             } else if (bytesPerValue == 2) {
-                dv.setUint16(offset, arr[i])
+                dv.setUint16(offset, arr[i], true)
             } else {
                 throw new Error(`Invalid bytesPerValue=${bytesPerValue}`)
             }
@@ -174,7 +174,7 @@ export function saveMAP(map) {
 
     // Write flags
     for (let i = 0; i < mapBytes; i++) {
-        dv.setUint16(offset, map.flags1[i] | (map.flags2[i] << 8))
+        dv.setUint16(offset, map.flags1[i] | (map.flags2[i] << 8), true)
         offset += 2
     }
 
