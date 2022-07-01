@@ -151,7 +151,7 @@ export class VivisectorPlugin extends Plugin {
                 return
             }
 
-            if (matId !== indices[i]) {
+            if (indices && matId !== indices[i]) {
                 if (matId !== -1) {
                     const grp = groups[groups.length -1]
                     grp.count = (i * 3 - grp.start)
@@ -184,8 +184,16 @@ export class VivisectorPlugin extends Plugin {
                 uvs[i].aU, uvs[i].aV,
             )
         })
-        const grp = groups[groups.length -1]
-        grp.count = (faces.length * 3 - grp.start)
+        if (groups.length) {
+            const grp = groups[groups.length -1]
+            grp.count = (faces.length * 3 - grp.start)
+        } else {
+            groups.push({
+                start: 0,
+                count: faces.length * 3,
+                materialIndex: 0
+            })
+        }
 
         const geo = new BufferGeometry()
         geo.setAttribute('position', new Float32BufferAttribute(position, 3))
