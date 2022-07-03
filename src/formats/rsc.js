@@ -156,18 +156,22 @@ export function loadRSC(buffer, version) {
       })
   }
 
-  const waterCount = dv.getUint32(offset, true)
+  let waterCount = 0
+  const waters = []
+
+  if (version === 2) {
+  waterCount = dv.getUint32(offset, true)
   offset += 4
 
-  const waters = []
-  for (let i = 0; i < waterCount; i++) {
-    waters.push({
-      textureIndex: dv.getUint32(offset + 0, true),
-      level: dv.getInt32(offset + 4, true),
-      opacity: dv.getFloat32(offset + 8, true),
-      color: dv.getUint32(offset + 12, true),
-    })
-    offset += 16
+    for (let i = 0; i < waterCount; i++) {
+      waters.push({
+        textureIndex: dv.getUint32(offset + 0, true),
+        level: dv.getInt32(offset + 4, true),
+        opacity: dv.getFloat32(offset + 8, true),
+        color: dv.getUint32(offset + 12, true),
+      })
+      offset += 16
+    }
   }
 
   return {
