@@ -265,7 +265,7 @@ export class CarnivoresPlugin extends Plugin {
 
                 const bone = {
                     name: o.name,
-                    parent: o.parent.isBone ? findBoneIndex(o.parent.name) : -1,
+                    parent: o.parent?.isBone ? findBoneIndex(o.parent.name) : -1,
                     position: bonePos.toArray(),
                 }
                 outModel.bones.push(bone)
