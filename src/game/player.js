@@ -53,6 +53,10 @@ let ca = 0, sa = 0
 // Temporary value for player{X,Y,Z}
 let playerV = [ 0, 0, 0 ]
 
+export function setRunMode(run) {
+    RunMode = run
+}
+
 export function setPlayer(x,y,z) {
     PlayerX = x
     PlayerY = y

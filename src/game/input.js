@@ -3,6 +3,7 @@
 //  be part of the input system)
 
 import nipplejs from 'nipplejs'
+import { setRunMode } from './player.js'
 
 export let KeyFlags = 0
 
@@ -71,14 +72,14 @@ function handleKey(ev) {
     }
 }
 
+// https://stackoverflow.com/questions/4817029/whats-the-best-way-to-detect-a-touch-screen-device-using-javascript
+const hasTouch = (('ontouchstart' in window) ||
+        (navigator.maxTouchPoints > 0) ||
+        (navigator.msMaxTouchPoints > 0));
+
 export function initInput() {
     window.addEventListener('keydown', handleKey)
     window.addEventListener('keyup', handleKey)
-
-    // https://stackoverflow.com/questions/4817029/whats-the-best-way-to-detect-a-touch-screen-device-using-javascript
-    const hasTouch = (('ontouchstart' in window) ||
-           (navigator.maxTouchPoints > 0) ||
-           (navigator.msMaxTouchPoints > 0));
 
     if (hasTouch) {
         const moveStick = nipplejs.create({
@@ -91,6 +92,8 @@ export function initInput() {
         })
         moveStick.on('move', (ev,data) => {
             const angle = Math.round(data.angle.degree / 45) * 45
+            setRunMode(data.force > 0.5)
+
             // clear movement key flags (the only ones we change here)
             KeyFlags &= ~(kf.Forward | kf.Backward | kf.SRight | kf.SLeft)
             switch(angle) {
@@ -162,5 +165,11 @@ export function initInput() {
                     break
             }
         })        
+    }
+}
+
+export function updateInput() {
+    if (hasTouch) {
+        KeyFlags &= ~(kf.LookUp | kf.LookDn | kf.Right | kf.Left)
     }
 }

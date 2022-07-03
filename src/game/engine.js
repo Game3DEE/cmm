@@ -1,4 +1,4 @@
-import { initInput, KeyFlags } from "./input.js"
+import { initInput, KeyFlags, updateInput } from "./input.js"
 import { GetLandH, initLand } from "./land.js"
 import { setPlayer, ProcessControls } from './player.js'
 
@@ -57,4 +57,5 @@ export function initEngine(map, rsc) {
 export function stepEngine(delta) {
     ProcessSyncro()
     ProcessControls(KeyFlags, RealTime, TimeDt, DeltaT)
+    updateInput()
 }
