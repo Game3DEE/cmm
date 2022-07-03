@@ -5,3 +5,5 @@ CMM is a tool for helping modders create content for the [classic Carnivores](ht
 It has animation support, and currently allows importing of [Primal Prey](https://carnivores.fandom.com/wiki/Primal_Prey), [Vivisector](https://carnivores.fandom.com/wiki/Vivisector:_Beast_Within), and [Cityscape](https://carnivores.fandom.com/wiki/Carnivores_Cityscape) games, besides the Classic Carnivores 1/2/IceAge games, and the current mobile Carnivores games.
 
 For details on what file formats and games are supported, checkout the [wiki](https://github.com/Game3DEE/cmm/wiki/File-formats)
+
+For all up to date information, or to talk to the developers, users, and testers of CMM, join the [CMM Community Discord](https://discord.gg/BAqascCx)
