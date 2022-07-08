@@ -23,7 +23,7 @@ const minimapOff = [ 12, 24 ]
 let prevFrameKeyFlags = 0
 
 const params = new URLSearchParams(document.location.search);
-const project = (params.get('prj') || 'area1').toUpperCase()
+const project = (params.get('prj') || 'area2').toUpperCase()
 const startShowHud = ['false','0','no','none'].indexOf(params.get('hud')?.toLowerCase()) === -1
 
 function gameLoop() {
