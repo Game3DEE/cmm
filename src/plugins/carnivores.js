@@ -421,12 +421,12 @@ export class CarnivoresPlugin extends Plugin {
                     flagsFolder.controllersRecursive().forEach(c => c.enable())
                     flagsFolder.open()
                     document.addEventListener('mousemove', this.mouseMovedHandler)
-                    document.addEventListener('mousedown', this.mouseDownHandler)
+                    document.addEventListener('click', this.mouseDownHandler)
                 } else {
                     flagsFolder.controllersRecursive().forEach(c => c.disable())
                     flagsFolder.close()
                     document.removeEventListener('mousemove', this.mouseMovedHandler)
-                    document.removeEventListener('mousedown', this.mouseDownHandler)
+                    document.removeEventListener('click', this.mouseDownHandler)
                 }
             }
             this.customGui = this.gui.addFolder('Carnivores')
@@ -525,7 +525,7 @@ export class CarnivoresPlugin extends Plugin {
     selectTriangle(ev) {
         // Determine triangle and hit pos, show selected triangle
         const i = this.hiliteTriangle(ev)
-        if (i && ev.buttons === 1) {
+        if (i) {
             this.triangleSelected.geometry = this.triangleHilite.geometry.clone()
             this.triangleSelected.geometry.needsUpdate = true
 
