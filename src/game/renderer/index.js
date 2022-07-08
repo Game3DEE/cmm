@@ -182,6 +182,10 @@ let time = 0
 let prevFrameKeyFlags = 0
 let renderHUD = true
 
+export function setRenderHUD(hudOn) {
+  renderHUD = hudOn
+}
+
 export function renderFrame(delta) {
   if (KeyFlags & kf.ToggleHUD &&
     !(prevFrameKeyFlags & kf.ToggleHUD)) {

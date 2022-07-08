@@ -8,7 +8,7 @@ import { load3DF } from './formats/3df.js'
 import { loadTGA } from './formats/tga.js'
 
 import { initEngine, stepEngine } from './game/engine.js'
-import { initRenderer, renderFrame } from './game/renderer/index.js'
+import { initRenderer, renderFrame, setRenderHUD } from './game/renderer/index.js'
 import { initAI, stepAI } from './game/ai.js'
 import { imgToImageData } from './utils.js'
 import { PlayerX, PlayerZ } from './game/player.js'
@@ -21,6 +21,10 @@ let minimapCtx
 let minimap
 const minimapOff = [ 12, 24 ]
 let prevFrameKeyFlags = 0
+
+const params = new URLSearchParams(document.location.search);
+const project = (params.get('prj') || 'area1').toUpperCase()
+const startShowHud = ['false','0','no','none'].indexOf(params.get('hud')?.toLowerCase()) === -1
 
 function gameLoop() {
     requestAnimationFrame(gameLoop)
@@ -99,8 +103,8 @@ function buildMinimapImage(map, rsc, mapFrame) {
 const loading = document.getElementById('loading')
 
 Promise.all([
-    fetch('HUNTDAT/AREAS/AREA1.MAP').then(body => body.arrayBuffer()),
-    fetch('HUNTDAT/AREAS/AREA1.RSC').then(body => body.arrayBuffer()),
+    fetch(`HUNTDAT/AREAS/${project}.MAP`).then(body => body.arrayBuffer()),
+    fetch(`HUNTDAT/AREAS/${project}.RSC`).then(body => body.arrayBuffer()),
     fetch('HUNTDAT/COMPAS.3DF').then(body => body.arrayBuffer()),
     fetch('HUNTDAT/WIND.CAR').then(body => body.arrayBuffer()),
     fetch('HUNTDAT/DIMOR2.CAR').then(body => body.arrayBuffer()),
@@ -118,6 +122,7 @@ Promise.all([
     initAI(car)
     setupMinimap(map, rsc, mmap)
 
+    setRenderHUD(startShowHud)
     // hide loading message
     loading.style.display = 'none'
 
