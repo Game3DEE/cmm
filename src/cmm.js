@@ -10,7 +10,7 @@ import {
     PerspectiveCamera,
     Scene,
     SkeletonHelper,
-    WebGLRenderer,
+    WebGL1Renderer,
  } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
@@ -311,11 +311,13 @@ function init() {
     scene = new Scene()
     scene.background = new Color(0x333333)
 
-    renderer = new WebGLRenderer()
+    renderer = new WebGL1Renderer()
     renderer.setPixelRatio(window.devicePixelRatio)
     renderer.setSize(window.innerWidth, window.innerHeight)
     document.body.appendChild(renderer.domElement)
   
+    console.log(renderer.capabilities.isWebGL2 ? 'WebGL 1 renderer used' : 'WebGL 2 renderer used')
+
     stats = new Stats()
     document.body.appendChild(stats.dom)
   
