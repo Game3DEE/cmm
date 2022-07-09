@@ -418,8 +418,8 @@ export class CarnivoresPlugin extends Plugin {
             if (turnOn) {
                     flagsFolder.controllersRecursive().forEach(c => c.enable())
                     flagsFolder.open()
-                    document.addEventListener('mousemove', this.mouseMovedHandler)
-                    document.addEventListener('click', this.mouseDownHandler)
+                    document.addEventListener('mousemove', this.mouseMovedHandler, true)
+                    document.addEventListener('click', this.mouseDownHandler, true)
                 } else {
                     flagsFolder.controllersRecursive().forEach(c => c.disable())
                     flagsFolder.close()
@@ -460,6 +460,8 @@ export class CarnivoresPlugin extends Plugin {
     }
 
     hiliteTriangle(ev) {
+        if (ev.target.tagName !== 'CANVAS') return
+
         this.mouse.x = ( ev.clientX / window.innerWidth ) * 2 - 1
         this.mouse.y = - ( ev.clientY / window.innerHeight ) * 2 + 1
 
@@ -521,6 +523,8 @@ export class CarnivoresPlugin extends Plugin {
     }
 
     selectTriangle(ev) {
+        if (ev.target.tagName !== 'CANVAS') return
+
         // Determine triangle and hit pos, show selected triangle
         const i = this.hiliteTriangle(ev)
         if (i) {
