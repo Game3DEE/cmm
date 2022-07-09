@@ -420,11 +420,13 @@ export class CarnivoresPlugin extends Plugin {
                     flagsFolder.open()
                     document.addEventListener('mousemove', this.mouseMovedHandler, true)
                     document.addEventListener('click', this.mouseDownHandler, true)
+                    console.log('installed')
                 } else {
                     flagsFolder.controllersRecursive().forEach(c => c.disable())
                     flagsFolder.close()
-                    document.removeEventListener('mousemove', this.mouseMovedHandler)
-                    document.removeEventListener('click', this.mouseDownHandler)
+                    document.removeEventListener('mousemove', this.mouseMovedHandler, true)
+                    document.removeEventListener('click', this.mouseDownHandler, true)
+                    console.log('removed')
                 }
             }
             this.customGui = this.gui.addFolder('Carnivores')
