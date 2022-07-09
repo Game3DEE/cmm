@@ -1,6 +1,3 @@
-// TODO:
-// - Add support for animation loading
-
 import {
     AnimationClip,
     Bone,
@@ -15,12 +12,13 @@ import {
     RGBAFormat,
     Skeleton,
     SkinnedMesh,
+    Uint16BufferAttribute,
     UnsignedByteType,
     Vector3,
 } from 'three'
 
 import { DataType, Plugin } from './plugin.js'
-import { downloadBlob, imgToImageData } from '../utils.js'
+import { downloadBlob, imgToImageData, setLinearFilters } from '../utils.js'
 
 // Loaders (all carnivores specific)
 import { load3DF, save3DF } from '../formats/3df.js'
@@ -388,7 +386,7 @@ export class CarnivoresPlugin extends Plugin {
         })
 
         const dst = outCtx.getImageData(0,0,outCanvas.width,outCanvas.height)
-        return new DataTexture(dst.data, dst.width, dst.height, RGBAFormat, UnsignedByteType)
+        return setLinearFilters(new DataTexture(dst.data, dst.width, dst.height, RGBAFormat, UnsignedByteType))
     }
 
     async loadFile(url, ext, baseName) {
@@ -542,6 +540,7 @@ export class CarnivoresPlugin extends Plugin {
     async loadCRT(url, baseName) {
         const crt = loadCRT(await this.loadFromURL(url))
         const tex = new DataTexture(crt.data, crt.width, crt.height, RGBAFormat, UnsignedByteType)
+        setLinearFilters(tex)
         tex.name = baseName
         return [{
             type: DataType.Texture,
@@ -875,6 +874,7 @@ export class CarnivoresPlugin extends Plugin {
         }
 
         const tex = new DataTexture(data, width, height, RGBAFormat, UnsignedByteType)
+        setLinearFilters(tex)
         tex.name = baseName
 
         return tex

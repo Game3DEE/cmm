@@ -8,6 +8,8 @@ import {
     UnsignedByteType,
 } from 'three'
 
+import { setLinearFilters } from '../utils.js'
+
 export class PKMPlugin extends Plugin {
     async loadFile(url, ext, baseName) {
         return [
@@ -21,6 +23,7 @@ export class PKMPlugin extends Plugin {
     loadPKM(buf, baseName) {
         const pkm = loadPKM(buf)
         const tex = new DataTexture(pkm.data, pkm.width, pkm.height, RGBAFormat, UnsignedByteType)
+        setLinearFilters(tex)
         tex.name = baseName
         return tex
     }

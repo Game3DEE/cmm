@@ -14,6 +14,8 @@ import { KaitaiStream } from 'kaitai-struct'
 import MDL from '../kaitai/serious1_mdl.js'
 import TEX from '../kaitai/serious1_tex.js'
 
+import { setLinearFilters } from '../utils.js'
+
 const scale = 32
 
 export class CityscapePlugin extends Plugin {
@@ -38,6 +40,7 @@ export class CityscapePlugin extends Plugin {
         }
 
         const tex = new DataTexture(data, frame.width, frame.height, RGBAFormat, UnsignedByteType)
+        setLinearFilters(tex)
         tex.name = baseName
         return [{
             type: DataType.Texture,

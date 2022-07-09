@@ -15,6 +15,8 @@ import {
     BlockDecompressImageDXT1,
  } from './dxt.js'
 
+import { setLinearFilters } from '../utils.js'
+
 export class DDSPlugin extends Plugin {
     async loadFile(url, ext, baseName) {
         return [
@@ -44,6 +46,7 @@ export class DDSPlugin extends Plugin {
       }
 
       const tex = new DataTexture(mip.data, mip.width, mip.height, info.format, UnsignedByteType)
+      setLinearFilters(tex)
       tex.name = baseName
       return tex
     }

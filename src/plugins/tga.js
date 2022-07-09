@@ -8,6 +8,8 @@ import {
     UnsignedByteType,
 } from 'three'
 
+import { setLinearFilters } from '../utils.js'
+
 export class TGAPlugin extends Plugin {
     async loadFile(url, ext, baseName) {
         return [
@@ -21,6 +23,7 @@ export class TGAPlugin extends Plugin {
     loadTGA(buf, baseName) {
         const tga = loadTGA(buf)
         const tex = new DataTexture(tga.data, tga.width, tga.height, RGBAFormat, UnsignedByteType)
+        setLinearFilters(tex)
         tex.name = baseName
         return tex
     }

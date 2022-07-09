@@ -5,11 +5,13 @@ import {
 } from 'three'
 
 import { DataType, Plugin } from './plugin.js'
+import { setLinearFilters } from '../utils.js'
 
 export class BrowserImagePlugin extends Plugin {
     async loadFile(url, ext, baseName) {
         const img = await this.loadImageAndGetPixels(url)
         const tex = new DataTexture(img.data, img.width, img.height, RGBAFormat, UnsignedByteType)
+        setLinearFilters(tex)
         tex.name = baseName
         tex.needsUpdate = true
 

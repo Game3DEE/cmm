@@ -1,7 +1,13 @@
 import {
-  Box3,
+  LinearFilter,
   Vector3,
 } from 'three'
+
+export function setLinearFilters(tex) {
+  tex.minFilter = LinearFilter
+  tex.magFilter = LinearFilter
+  return tex
+}
 
 export function downloadBlob(data, fileName, mimeType = 'application/octet-stream') {
   const blob = new Blob([data], {
