@@ -676,6 +676,9 @@ export class CarnivoresPlugin extends Plugin {
             }
         }
 
+        const skinIndices = []
+        const skinWeights = []
+
         const mapping = []
         model.faces.forEach(f => {
             for (let i = 0; i < 3; i++) {
@@ -687,6 +690,8 @@ export class CarnivoresPlugin extends Plugin {
                     v.position[2],
                 )
                 mapping.push(vIdx)
+                skinIndices.push(v.bone, 0, 0, 0)
+                skinWeights.push(1, 0, 0, 0)
 
                 if (totalFrames) {
                     let frIdx = 0
@@ -733,6 +738,10 @@ export class CarnivoresPlugin extends Plugin {
 
         let obj;
         if (model.bones?.length > 1) {
+            // We have bones, so set the skin data
+            geo.setAttribute( 'skinIndex', new Uint16BufferAttribute( skinIndices, 4 ) );
+            geo.setAttribute( 'skinWeight', new Float32BufferAttribute( skinWeights, 4 ) );
+
             let v1 = new Vector3(), v2 = new Vector3()
             const bones = []
             model.bones.forEach(bone => {
