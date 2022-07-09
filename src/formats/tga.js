@@ -19,6 +19,9 @@ export function loadTGA(buffer) {
     let offset = 18
 
     console.log(`TGA datatypecode: ${datatypecode}, alpha bits: ${imagedescriptor & 0xf}`)
+    const leftToRight = (imagedescriptor & 0x10) == 0
+    const topToBottom = (imagedescriptor & 0x20) == 0
+    console.log(`TGA left-to-right: ${leftToRight}, top-to-bottom: ${topToBottom}`)
 
     // Skip over unnecessary stuff
     offset += idlength
@@ -32,7 +35,7 @@ export function loadTGA(buffer) {
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             let off = (y * width + x) * 4
-            let srcOff = ((height - y -1) * width + x) * bytesPerPixel
+            let srcOff = ((topToBottom ? y : height - y -1) * width + x) * bytesPerPixel
             let p = []
             for (let i = 0; i < bytesPerPixel; i++) {
                 p.push(dv.getUint8(offset + srcOff + i))
@@ -102,7 +105,7 @@ export function saveTGA(image, bits = 32) {
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             let srcOff = (y * width +x) * bytesPerPixel
-            let dstOff = offset + ((height - y - 1) * width + x) * bytesPerPixel
+            let dstOff = offset + (y * width + x) * bytesPerPixel
             switch(bits) {
                 case 16:
                     dv.setUint8(dstOff + 0, byteView[srcOff +0])
