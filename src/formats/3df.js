@@ -65,7 +65,7 @@ export function load3DF(buffer, offset = 0) {
 
 export function save3DF(model) {
     const textureLength = model.texture ? model.texture.length * 2 : 0
-    const boneCount = model.bones?.length || 0
+    const boneCount = model.bones?.length || 1
     const byteSize =
         16 + // header
         model.faces.length * 64 +
@@ -82,6 +82,19 @@ export function save3DF(model) {
     dv.setUint32(8, boneCount, true)
     dv.setUint32(12, textureLength, true)
     let offset = 16
+
+    // At minimum, always generate a single bone mapped
+    // to all vertices
+    if (!model.bones?.length) {
+        model.bones = [{
+            name: 'Default',
+            position: [ 0,0,0 ],
+            parent: -1,
+            hidden: 0,
+        }]
+        model.vertices.forEach(v => v.bone = 0)
+        console.log('Generated default bone for 3DF')
+    }
 
     // Write faces / vertices
     offset += writeFaces(dv, offset, model.faces)
