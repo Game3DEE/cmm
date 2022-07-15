@@ -1,4 +1,6 @@
 import {
+    LineSegments,
+    Mesh,
     MeshNormalMaterial,
 } from 'three'
 
@@ -31,7 +33,12 @@ export class GenericPlugin extends Plugin {
     async loadFile(url, ext, baseName) {
         let loader = new OBJLoader()
         let model = await loader.loadAsync(url)
-        const mesh = model.children[0]
+        let mesh = model.children[0]
+        // Handle the case that the OBJLoader for some reason thought
+        // it was a good idea to load the object as a line-segment object
+        if (mesh instanceof LineSegments) {
+            mesh = new Mesh(mesh.geometry, mesh.material)
+        }
         if (Array.isArray(mesh.material)) {
             mesh.material.map((m,i) => {
                 let mat = new MeshNormalMaterial()
@@ -43,7 +50,7 @@ export class GenericPlugin extends Plugin {
         }
 
         return [
-            { type: DataType.Model, model: model.children[0] }
+            { type: DataType.Model, model: mesh }
         ]
     }
 
