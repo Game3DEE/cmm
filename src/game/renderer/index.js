@@ -91,6 +91,7 @@ export function createObject(model) {
   geometry.setIndex(indices) // XXX index not really required
   let map = new THREE.DataTexture(data, width, height, THREE.RGBFormat, THREE.UnsignedShort565Type)
   map.wrapS = map.wrapT = THREE.RepeatWrapping
+  map.magFilter = map.minFilter = THREE.LinearFilter
   let material = new THREE.MeshBasicMaterial({ map, side: THREE.DoubleSide })
   material.onBeforeCompile = s => {
     let fs = s.fragmentShader
