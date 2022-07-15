@@ -101,6 +101,8 @@ export function loadCAR(buffer) {
 
 export function saveCAR(model) {
     const textureLength = model.texture ? model.texture.length * 2 : 0
+    const soundCount = model.sounds?.length || 0
+    const soundsPCMSize = model.sounds?.reduce((sum,c) => sum + c.pcm.length, 0) || 0
     const sizeBytes =
         32 + // name + msc
         20 + // header
@@ -108,8 +110,9 @@ export function saveCAR(model) {
         model.vertices.length * 16 +
         textureLength +
         model.animations.reduce((a, anim) => a + 40 + anim.frames.length * 2, 0) +
-        0 + // sounds
-        0 // soundsMap
+        soundCount * (32 + 4) + // sound metadata (name + size)
+        soundsPCMSize + // actual PCM data size
+        (model.soundMap?.length || 0) * 4 // soundsMap
 
     const buffer = new ArrayBuffer(sizeBytes)
     const dv = new DataView(buffer)
@@ -129,7 +132,7 @@ export function saveCAR(model) {
     offset += 8
 
     dv.setUint32(offset + 0, model.animations.length, true)
-    dv.setUint32(offset + 4, /* model.sounds.length */0, true)
+    dv.setUint32(offset + 4, model.sounds.length, true)
     dv.setUint32(offset + 8, model.vertices.length, true)
     dv.setUint32(offset + 12, model.faces.length, true)
     dv.setUint32(offset + 16, textureLength, true)
@@ -159,30 +162,24 @@ export function saveCAR(model) {
         }
     })
 
-    /*
-    const sounds = []
-    sounds.forEach(snd => {
-        let name = ''
+    model.sounds?.forEach(snd => {
         for (let j = 0; j < 32; j++) {
-            let c = dv.getUint8(offset + j)
-            if (c === 0) break
-            name += String.fromCharCode(c)
+            let c = j < snd.name.length ? snd.name.charCodeAt(j) : 0
+            dv.setUint8(offset + j, c)
         }
-        const pcmLength = dv.getUint32(offset + 32, true)
-        const pcm = new Uint8ClampedArray(buffer, offset + 36, pcmLength)
-        sounds.push({
-            name,
-            pcm,
-        })
-        offset += 36 + pcmLength
+        offset += 32
+        dv.setUint32(offset, snd.pcm.length, true)
+        offset += 4
+        snd.pcm.forEach(b => dv.setUint8(offset++, b))
     })
 
-    const soundMap = []
-    while(offset < buffer.byteLength) {
-        soundMap.push( dv.getInt32(offset, true) )
+    model.soundMap?.forEach(i => {
+        console.log(i)
+        dv.setInt32(offset, i, true)
         offset += 4
-    }
-    */
+    })
+
+    console.log(offset, sizeBytes)
 
     return buffer
 }
