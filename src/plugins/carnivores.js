@@ -556,6 +556,7 @@ export class CarnivoresPlugin extends Plugin {
 
     async load3DF(url, baseName) {
         const data = load3DF(await this.loadFromURL(url)).model
+        data.name = baseName
         const tex = this.convertTexture(data.texture, data.textureSize, baseName)
         const result = [
             { type: DataType.Model, model: this.createMeshFromModel(data, tex, baseName) },
@@ -573,6 +574,7 @@ export class CarnivoresPlugin extends Plugin {
 
     async load3DN(url, baseName) {
         const data = load3DN(await this.loadFromURL(url))
+        data.name = baseName
         return [
             { type: DataType.Model, model: this.createMeshFromModel(data, null, baseName) },
         ]

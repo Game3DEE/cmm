@@ -1,7 +1,3 @@
-// TODO:
-//   - handle texture size (uv mult)
-//   - figure out animation format
-
 import {
     readFaces, readVertices,
     writeFaces, writeVertices,
@@ -132,7 +128,7 @@ export function saveCAR(model) {
     offset += 8
 
     dv.setUint32(offset + 0, model.animations.length, true)
-    dv.setUint32(offset + 4, model.sounds.length, true)
+    dv.setUint32(offset + 4, soundCount, true)
     dv.setUint32(offset + 8, model.vertices.length, true)
     dv.setUint32(offset + 12, model.faces.length, true)
     dv.setUint32(offset + 16, textureLength, true)
