@@ -1,5 +1,7 @@
 import {
     AnimationMixer,
+    Audio,
+    AudioListener,
     AxesHelper,
     Clock,
     Color,
@@ -22,7 +24,7 @@ import { zoomExtents } from './utils.js'
 let camera, scene, renderer, stats, controls, grid, axes, fileButton
 let clock = new Clock()
 // GUI elements
-let gui, materialFolder, animationsFolder
+let gui, materialFolder, animationsFolder, animSettings
 // Skeleton GUI
 let skelGUI, skelHelper
 // model info
@@ -31,6 +33,8 @@ let faceCountSpan, modelNameSpan
 let plugins = [], activePlugin
 // active model data
 let model, mixer
+// sound support
+let listener, sound
 
 const textures = [] // list of currently loaded textures
 
@@ -41,6 +45,17 @@ const settings = {
     skeleton: true,
     wireframe: false,
     mode: 0,
+}
+
+// Convert audio data to WebAudio buffer
+function createAudioBuffer(data) {
+    const buffer = listener.context.createBuffer(1, data.length / 2, 22050)
+    const channelFloats = buffer.getChannelData(0)
+    const dv = new DataView(data.buffer, data.byteOffset, data.length)
+    for (let i = 0; i < data.length / 2; i++) {
+        channelFloats[i] = dv.getInt16(i * 2, true) / 32767
+    }
+    return buffer;
 }
 
 function setModel(newModel, plug) {
@@ -68,6 +83,7 @@ function setModel(newModel, plug) {
         scene.add(model)
 
         mixer = new AnimationMixer(model)
+        mixer.addEventListener('loop', animLoopHandler)
     }
 
     // hide or show "Show Skeleton"
@@ -131,6 +147,17 @@ function setMaterial(idx, tex) {
     }
 }
 
+function animLoopHandler(ev) {
+    console.log(`animLoopHandler`)
+    const anim = model.animations[animSettings.current]
+    if (sound.isPlaying) { // stop any audio
+        sound.stop()
+    }
+    if (anim.audioBuffer) {
+        sound.play()
+    }
+}
+
 function updateAnimations() {
     animationsFolder.children.slice().forEach(c => c.destroy())
 
@@ -139,11 +166,14 @@ function updateAnimations() {
     const animations = { 'none': 0 }
     model.animations.forEach((ani,aIdx) => {
         animations[ani.name] = aIdx +1
+        if (ani.audio && !ani.audioBuffer) {
+            ani.audioBuffer = createAudioBuffer(ani.audio.pcm)
+        }
     })
 
     const pluginAnimOpts = activePlugin?.animationOptions() || {}
 
-    const animSettings = {
+    animSettings = {
         current: 0,
         remove: () => {
             mixer.stopAllAction()
@@ -159,7 +189,12 @@ function updateAnimations() {
     animationsFolder.add(animSettings, 'current', animations).onChange(v => {
         mixer.stopAllAction()
         if (v) {
-            mixer.clipAction(model.animations[v-1]).play()
+            const anim = model.animations[v-1]
+            mixer.clipAction(anim).play()
+            if (anim.audioBuffer) {
+                sound.setBuffer(anim.audioBuffer)
+                sound.play()
+            }
         }
     })
     animationsFolder.add(animSettings, 'remove')
@@ -307,6 +342,10 @@ function init() {
 
     camera = new PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 20000000)
     camera.position.set(1700, 700, 1500)
+
+    listener = new AudioListener()
+    sound = new Audio(listener)
+    camera.add(listener)
 
     scene = new Scene()
     scene.background = new Color(0x333333)

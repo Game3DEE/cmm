@@ -801,6 +801,14 @@ export class CarnivoresPlugin extends Plugin {
             })
         }
 
+        // Patch in sound assignments
+        if (model.soundMap) {
+            obj.animations.forEach((clip, idx) => {
+                const sndIdx = model.soundMap[idx]
+                clip.audio = model.sounds[sndIdx]
+            })
+        }
+
         mat.name = model.name || baseName
         obj.name = model.name || baseName
         model.mapping = mapping
