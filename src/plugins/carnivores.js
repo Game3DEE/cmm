@@ -598,8 +598,9 @@ export class CarnivoresPlugin extends Plugin {
     }
 
     async loadVTL(url, baseName) {
+        // TODO: make sure baseName is a unique animation name....
         const data = loadVTL(await this.loadFromURL(url))
-        const anim = this.generateAnimation(data, baseName)
+        const anim = this.generateAnimation(data, baseName, true)
         return anim ? [
             { type: DataType.Animation, animation: anim },
         ] : []
@@ -607,17 +608,23 @@ export class CarnivoresPlugin extends Plugin {
 
     async loadANI(url, baseName) {
         const data = loadANI(await this.loadFromURL(url))
-        const anim = this.generateAnimation(data, baseName)
+        const anim = this.generateAnimation(data, baseName, true)
         return anim ? [
             { type: DataType.Animation, animation: anim },
         ] : []
     }
 
-    generateAnimation(data, baseName) {
+    generateAnimation(data, baseName, ensureUnique) {
         const { cpmData } = this.activeModel.userData
         // If animation doesn't match model, forget about it
         if (cpmData.vertices.length !== data.vertCount) {
             return null
+        }
+
+        if (ensureUnique) {
+            // Make sure baseName is a unique animation name
+            while( this.activeModel.animations?.find(anim => anim.name === baseName) )
+                baseName += "_dup"
         }
 
         // !!! If there's no animations yet, create the empty array
