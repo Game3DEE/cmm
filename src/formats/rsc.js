@@ -1,4 +1,4 @@
-// XXX TODO add C2 support! (everything starting with objects[] on is C1 only)
+// XXX TODO handle C1/C2 more gracefully
 
 import { load3DF } from './3df.js'
 
