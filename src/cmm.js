@@ -148,12 +148,11 @@ function setMaterial(idx, tex) {
 }
 
 function animLoopHandler(ev) {
-    console.log(`animLoopHandler`)
     const anim = model.animations[animSettings.current]
     if (sound.isPlaying) { // stop any audio
         sound.stop()
     }
-    if (anim.audioBuffer) {
+    if (anim?.audioBuffer) {
         sound.play()
     }
 }
@@ -190,6 +189,9 @@ function updateAnimations() {
         mixer.stopAllAction()
         if (v) {
             const anim = model.animations[v-1]
+            if (sound.isPlaying) { // stop any audio
+                sound.stop()
+            }
             mixer.clipAction(anim).play()
             if (anim.audioBuffer) {
                 sound.setBuffer(anim.audioBuffer)
