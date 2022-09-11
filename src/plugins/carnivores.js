@@ -86,7 +86,8 @@ export class CarnivoresPlugin extends Plugin {
             },
             exportCAR: () => {
                 const model = this.activeModel.userData.cpmData
-                const out = saveCAR({  ...model, animations: this.convertAnimations(), texture: this.createTexture565(), })
+                const animations = this.convertAnimations()
+                const out = saveCAR({  ...model, animations, texture: this.createTexture565(), })
                 downloadBlob(out, `${this.activeModel.name}.car`)
             },
             exportTGA32: () => {
@@ -420,13 +421,11 @@ export class CarnivoresPlugin extends Plugin {
                     flagsFolder.open()
                     document.addEventListener('mousemove', this.mouseMovedHandler, true)
                     document.addEventListener('click', this.mouseDownHandler, true)
-                    console.log('installed')
                 } else {
                     flagsFolder.controllersRecursive().forEach(c => c.disable())
                     flagsFolder.close()
                     document.removeEventListener('mousemove', this.mouseMovedHandler, true)
                     document.removeEventListener('click', this.mouseDownHandler, true)
-                    console.log('removed')
                 }
             }
             this.customGui = this.gui.addFolder('Carnivores')
@@ -835,7 +834,7 @@ export class CarnivoresPlugin extends Plugin {
         // Add all frames to animation
         do {
             const attr = position[frameIndex]
-            const frame = []
+            const frame = new Array(cpmData.vertices.length * 3).fill(0)
             for (let i = 0; i < attr.count; i++) {
                 const targetVIdx = mapping[i]
                 frame[targetVIdx*3 + 0] = Math.floor(attr.array[i*3+0] * 16)
