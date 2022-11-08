@@ -23,6 +23,7 @@ export function downloadBlob(data, fileName, mimeType = 'application/octet-strea
 function downloadURL(data, fileName) {
   let a = document.createElement('a')
   a.href = data
+  a.target = "_blank"
   a.download = fileName
   document.body.appendChild(a)
   a.style = 'display: none'
