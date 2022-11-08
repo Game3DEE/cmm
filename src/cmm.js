@@ -49,6 +49,8 @@ const settings = {
 
 // Convert audio data to WebAudio buffer
 function createAudioBuffer(data) {
+    if (!data.length) return null
+
     const buffer = listener.context.createBuffer(1, data.length / 2, 22050)
     const channelFloats = buffer.getChannelData(0)
     const dv = new DataView(data.buffer, data.byteOffset, data.length)
