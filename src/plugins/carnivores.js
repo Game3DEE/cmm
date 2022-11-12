@@ -30,6 +30,9 @@ import { loadCRT } from '../formats/crt.js'
 
 import { saveTGA } from '../formats/tga.js'
 
+import A3DF from '../kaitai/animator_3df.js'
+import { KaitaiStream } from 'kaitai-struct'
+
 export class CarnivoresPlugin extends Plugin {
     constructor(gui, camera) {
         super(gui)
@@ -554,21 +557,63 @@ export class CarnivoresPlugin extends Plugin {
     }
 
     async load3DF(url, baseName) {
-        const data = load3DF(await this.loadFromURL(url)).model
-        data.name = baseName
-        const tex = this.convertTexture(data.texture, data.textureSize, baseName)
-        const result = [
-            { type: DataType.Model, model: this.createMeshFromModel(data, tex, baseName) },
-        ]
+        const buf = await this.loadFromURL(url)
+        const dv = new DataView(buf, 0, 4)
+        if (dv.getUint32(0, true) === 0x7665694B) { // "Kiev"
+            // Animator 3DF format
+            return await this.loadA3DF(buf, baseName)
+        } else {
+            // "Standard" 3DF format
+            const data = load3DF(buf).model
+            data.name = baseName
+            const tex = this.convertTexture(data.texture, data.textureSize, baseName)
+            const result = [
+                { type: DataType.Model, model: this.createMeshFromModel(data, tex, baseName) },
+            ]
 
-        if (tex) { // we could have a zero byte texture
-            result.push({
-                type: DataType.Texture,
-                texture: tex,
-            })
+            if (tex) { // we could have a zero byte texture
+                result.push({
+                    type: DataType.Texture,
+                    texture: tex,
+                })
+            }
+
+            return result
+        }
+    }
+
+    async loadA3DF(buf, baseName) {
+        const parsed = new A3DF(new KaitaiStream(buf))
+        const convuv = (f4) => Math.floor(f4 * 256)
+        const data = {
+            name: baseName,
+            vertices: parsed.vertices.map(v => ({
+                position: [ v.x, v.y, v.z ],
+                bone: v.owner,
+                hide: v.hide,
+            })),
+            faces: parsed.faces.map(f => ({
+                indices: [ f.a, f.b, f.c ],
+                uvs: [ convuv(f.tax), convuv(f.tay), convuv(f.tbx), convuv(f.tby), convuv(f.tcx), convuv(f.tcy) ],
+                flags: f.flags,
+                dmask: 0,
+                distant: 0,
+                next: 0,
+                group: 0,
+            })),
+            bones: parsed.bones.map(b => ({
+                name: b.name,
+                position: [ b.x, b.y, b.z ],
+                parent: b.owner,
+                hidden: b.hide,
+            })),
+            textureSize: 0, // we're ignoring the texture for now
+            texture: undefined,
         }
 
-        return result
+        return [
+            { type: DataType.Model, model: this.createMeshFromModel(data, null, baseName) },
+        ]
     }
 
     async load3DN(url, baseName) {
@@ -675,7 +720,7 @@ export class CarnivoresPlugin extends Plugin {
     supportedExtensions() {
         return [ '3df', 'car', '3dn', 'vtl', 'ani', 'crt' ]
     }
-
+ 
     createMeshFromModel(model, tex, baseName) {
         const { animations } = model
         const morphVertices = []
@@ -748,7 +793,7 @@ export class CarnivoresPlugin extends Plugin {
             })
         }
 
-        const mat = tex ? new MeshBasicMaterial({ map: tex }) : new MeshNormalMaterial()
+        const mat = tex ? new MeshBasicMaterial({ map: tex }) : new MeshNormalMaterial({ side: DoubleSide })
 
         let obj;
         if (model.bones?.length > 1) {
