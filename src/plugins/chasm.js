@@ -3,7 +3,8 @@ import { DataType, Plugin } from './plugin.js'
 
 import { KaitaiStream } from 'kaitai-struct'
 import C3O from '../kaitai/chasm_3o.js'
-
+import CAR from '../kaitai/chasm_car.js'
+import { saveTGA } from '../formats/tga.js'
 import {
     AnimationClip,
     BufferGeometry,
@@ -11,18 +12,51 @@ import {
     DoubleSide,
     Float32BufferAttribute,
     Mesh,
-    MeshNormalMaterial,
     MeshBasicMaterial,
+    RepeatWrapping,
     RGBAFormat,
     UnsignedByteType,
 } from 'three'
-
+import {
+    downloadBlob,
+    setLinearFilters
+} from '../utils.js'
 
 export class ChasmPlugin extends Plugin {
+    constructor(gui, camera) {
+        super(gui, camera)
+
+        this.guiOps = {
+            exportTGA: () => {
+                const tex = this.activeModel?.material?.map
+                if (tex) {
+                    const buf = saveTGA(tex.image) // no need for conversion, we are 32-bit
+                    downloadBlob(buf, `${tex.name}.tga`)
+                }
+            },
+        }
+    }
+
+    activate(model) {
+        if (!this.customGui) {
+            this.customGui = this.gui.addFolder('Chasm')
+            this.customGui.add(this.guiOps, 'exportTGA').name('Export TGA')
+        }
+        this.activeModel = model
+    }
+
+    deactivate() {
+        this.activeModel = null
+        this.customGui?.destroy()
+        this.customGui = null
+    }
+
     async loadFile(url, ext, baseName) {
         switch(ext) {
             case '3o':
                 return this.load3O(await this.loadFromURL(url), baseName)
+            case 'car':
+                return this.loadCAR(await this.loadFromURL(url), baseName)
         }
 
         return undefined
@@ -86,6 +120,7 @@ export class ChasmPlugin extends Plugin {
             texData[i*4 +3] = 0xff
         }
         const map = new DataTexture(texData, texWidth, texHeight, RGBAFormat, UnsignedByteType)
+        setLinearFilters(map)
         map.name = baseName
         const mat = new MeshBasicMaterial({ side: DoubleSide, map })
         mat.name = baseName
@@ -98,8 +133,136 @@ export class ChasmPlugin extends Plugin {
         ]
     }
 
+    loadCAR(buffer, baseName) {
+        const parsed = new CAR(new KaitaiStream(buffer))
+        console.log(parsed)
+
+        const texWidth = 64
+        const texHeight = parsed.textureHeight //XXX: parsed.skinHeight
+
+        const scale = 32
+
+        const morphVertices = []
+        const position = []
+        const uvs = []
+        //const index = []
+
+        const totalFrames = parsed.animations.reduce((count, anim) => count + anim.frames.length, 0)
+        if (totalFrames) {
+            for (let i = 0; i < totalFrames; i++) {
+                morphVertices[i] = []
+            }
+        }
+
+        function addTriangle(a,b,c, aUv, bUv, cUv, vOffset) {
+            let v = parsed.vertices[a]
+            position.push(v.x / scale, v.z / scale, -v.y / scale)
+            v = parsed.vertices[b]
+            position.push(v.x / scale, v.z / scale, -v.y / scale)
+            v = parsed.vertices[c]
+            position.push(v.x / scale, v.z / scale, -v.y / scale)
+            uvs.push(
+                aUv.x / (texWidth * 256), (aUv.y + 4 * vOffset) / (texHeight * 256),
+                bUv.x / (texWidth * 256), (bUv.y + 4 * vOffset) / (texHeight * 256),
+                cUv.x / (texWidth * 256), (cUv.y + 4 * vOffset) / (texHeight * 256))
+
+            let fIdx = 0
+            parsed.animations.forEach(anim => {
+                anim.frames.forEach(f => {
+                    const vertices = f.vertices
+                    let v = vertices[a]
+                    morphVertices[fIdx].push(v.x / scale, v.z / scale, -v.y / scale)
+                    v = vertices[b]
+                    morphVertices[fIdx].push(v.x / scale, v.z / scale, -v.y / scale)
+                    v = vertices[c]
+                    morphVertices[fIdx].push(v.x / scale, v.z / scale, -v.y / scale)
+                    ++fIdx
+                })
+            })
+        }
+
+        let tris = 0, quads = 0
+        for (let i = 0; i < parsed.polyCount; i++) {
+            const p = parsed.polygons[i]
+            const a = p.indices[0], b = p.indices[1], c = p.indices[2], d = p.indices[3]
+            const aUv = p.uvs[0], bUv = p.uvs[1], cUv = p.uvs[2], dUv = p.uvs[3]
+            addTriangle(c, b, a, cUv, bUv, aUv, p.vOffset)
+            if (d !== 0xff) {
+                quads++
+                addTriangle(a, d, c, aUv, dUv, cUv, p.vOffset)
+            } else {
+                tris++
+            }
+        }
+        console.log(`${tris} triangles, ${quads} quads`)
+
+        const geo = new BufferGeometry()
+        geo.setAttribute('position', new Float32BufferAttribute(position, 3))
+        geo.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
+        //geo.setIndex(index)
+        geo.computeVertexNormals()
+
+        if (totalFrames) {
+            // Add animation data
+            geo.morphAttributes.position = []
+            let frIdx = 0
+            parsed.animations.forEach((ani, aidx) => {
+                for (let i = 0; i < ani.frames.length; i++) {
+                    const attr = new Float32BufferAttribute(morphVertices[frIdx + i], 3)
+                    attr.name = `anim${aidx}.${i}`
+                    geo.morphAttributes.position.push(attr)
+                }
+                frIdx += ani.frames.length
+            })
+        }
+
+        const texData = new Uint8ClampedArray(texHeight * texWidth * 4)
+        for (let i = 0; i < texWidth * texHeight; i++) {
+            const pix = parsed.texture[i] //XXX: skin
+            texData[i*4 +0] = chasm2Pal[pix*3+0] << 2 // chasm2Pal colors have 6 bits
+            texData[i*4 +1] = chasm2Pal[pix*3+1] << 2
+            texData[i*4 +2] = chasm2Pal[pix*3+2] << 2
+            texData[i*4 +3] = 0xff
+        }
+        const map = new DataTexture(texData, texWidth, texHeight, RGBAFormat, UnsignedByteType)
+        setLinearFilters(map)
+        map.name = baseName
+        map.wrapS = map.wrapT = RepeatWrapping
+        const mat = new MeshBasicMaterial({ side: DoubleSide, map })
+        mat.name = baseName
+        const mesh = new Mesh(geo, mat)
+        mesh.name = baseName
+
+        if (totalFrames) {
+            parsed.animations.forEach((ani, aidx) => {
+                if (ani.frames.length == 0) return
+
+                const seq = []
+                for (let i = 0; i < ani.frames.length; i++) {
+                    seq.push({
+                        name: `anim${aidx}.${i}`,
+                        vertices: [], // seems unused
+                    })
+                }
+                const clip = AnimationClip.CreateFromMorphTargetSequence(
+                    `anim${aidx}`,
+                    seq,
+                    5, // TODO
+                    false /*noLoop*/
+                )
+                clip.userData = { fps: 5 }
+                mesh.animations.push(clip)
+            })
+        }
+
+        return [
+            { type: DataType.Texture, texture: map },
+            { type: DataType.Model, model: mesh },
+        ]
+    }
+
     supportedExtensions() {
-        return [ '3o' ]
+        return [ '3o', 'car' ]
     }
 
     isMode() {
