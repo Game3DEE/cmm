@@ -72,9 +72,13 @@ export class CarnivoresPlugin extends Plugin {
             sfPhong: false,
             sfEnvMap: false,
 
+            scaleMode: 0,
             scaleFactor: 1,
             scale: () => {
-                this.scaleModelAndAnims(this.guiOps.scaleFactor)
+                const x = this.guiOps.scaleMode === 0 || this.guiOps.scaleMode == 1 ? this.guiOps.scaleFactor : 1
+                const y = this.guiOps.scaleMode === 0 || this.guiOps.scaleMode == 2 ? this.guiOps.scaleFactor : 1
+                const z = this.guiOps.scaleMode === 0 || this.guiOps.scaleMode == 3 ? this.guiOps.scaleFactor : 1
+                this.scaleModelAndAnims(x, y, z)
             },
 
             export3DF: () => {
@@ -133,16 +137,16 @@ export class CarnivoresPlugin extends Plugin {
         return this.animationOpts
     }
 
-    scaleModelAndAnims(factor) {
+    scaleModelAndAnims(xFactor, yFactor, zFactor) {
         // Scale base geometry
-        this.activeModel.geometry.scale(factor, factor, factor)
+        this.activeModel.geometry.scale(xFactor, yFactor, zFactor)
 
         // Now also scale the imported data, as we're still using that on export for the base model :(
         const { cpmData } = this.activeModel.userData
         cpmData.vertices.forEach(v => {
-            v.position[0] *= factor
-            v.position[1] *= factor
-            v.position[2] *= factor
+            v.position[0] *= xFactor
+            v.position[1] *= yFactor
+            v.position[2] *= zFactor
         })
 
         // Scale animation vertices
@@ -150,10 +154,14 @@ export class CarnivoresPlugin extends Plugin {
         const { position } = this.activeModel.geometry.morphAttributes
         position?.forEach(attr => {
             const array = []
-            for (let i = 0; i < attr.array.length; i++) {
-                let v = attr.array[i] * factor
-                v = Math.floor(v * 16) / 16 // round for conversion to signed int16 later
-                array.push(v)
+            for (let i = 0; i < attr.array.length; i+=3) {
+                let x = attr.array[i+0] * xFactor
+                let y = attr.array[i+1] * yFactor
+                let z = attr.array[i+2] * zFactor
+                x = Math.floor(x * 16) / 16 // round for conversion to signed int16 later
+                y = Math.floor(y * 16) / 16 // round for conversion to signed int16 later
+                z = Math.floor(z * 16) / 16 // round for conversion to signed int16 later
+                array.push(x, y, z)
             }
             const newAttr = new Float32BufferAttribute(array, 3)
             newAttr.name = attr.name
@@ -457,6 +465,7 @@ export class CarnivoresPlugin extends Plugin {
             flagsFolder.add(this.guiOps, 'sfPhong').listen().onChange(v => setBitFlag(32, v)).disable()
             flagsFolder.add(this.guiOps, 'sfEnvMap').listen().onChange(v => setBitFlag(64, v)).disable()
             flagsFolder.close()
+            this.customGui.add(this.guiOps, 'scaleMode', { XYZ: 0, X: 1, Y: 2, Z: 3 })
             this.customGui.add(this.guiOps, 'scaleFactor')
             this.customGui.add(this.guiOps, 'scale')
         }
