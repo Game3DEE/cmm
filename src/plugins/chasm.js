@@ -24,6 +24,39 @@ import {
 
 const FIXED_ANIM_FPS = 18
 
+const ANIM_NAMES = [
+    "move",         // 0
+    "anim1",        // 1
+    "idle1",        // 2
+    "idle2",        // 3
+    "idle3",        // 4
+    "hit",          // 5
+    "attackleft",   // 6
+    "attackright",  // 7
+    "attackhead",   // 8
+    "pain1",        // 9
+    "pain2",        // 10
+    "righthandcut", // 11
+    "lefthandcut",  // 12
+    "headcut",      // 13
+    "respawn",      // 14
+    "win",          // 15
+    "death1",       // 16
+    "death2",       // 17
+    "anim18",       // 18
+    "anim19",       // 19
+]
+
+/*
+sound IDs:
+		Alarmed= 0u,
+		RemoteAttack= 1u,
+		MeleeAttack= 2u,
+		Win= 3u,
+		Pain= 4u,
+		Death= 6u,
+*/
+
 export class ChasmPlugin extends Plugin {
     constructor(gui, camera) {
         super(gui, camera)
@@ -211,7 +244,7 @@ export class ChasmPlugin extends Plugin {
             parsed.animations.forEach((ani, aidx) => {
                 for (let i = 0; i < ani.frames.length; i++) {
                     const attr = new Float32BufferAttribute(morphVertices[frIdx + i], 3)
-                    attr.name = `anim${aidx}.${i}`
+                    attr.name = `${ANIM_NAMES[aidx]}.${i}`
                     geo.morphAttributes.position.push(attr)
                 }
                 frIdx += ani.frames.length
@@ -236,24 +269,44 @@ export class ChasmPlugin extends Plugin {
         mesh.name = baseName
 
         if (totalFrames) {
+            let cmmAnimIdx = 0
             parsed.animations.forEach((ani, aidx) => {
                 if (ani.frames.length == 0) return
 
                 const seq = []
                 for (let i = 0; i < ani.frames.length; i++) {
                     seq.push({
-                        name: `anim${aidx}.${i}`,
+                        name: `${ANIM_NAMES[aidx]}.${i}`,
                         vertices: [], // seems unused
                     })
                 }
                 const clip = AnimationClip.CreateFromMorphTargetSequence(
-                    `anim${aidx}`,
+                    `${ANIM_NAMES[aidx]}`,
                     seq,
                     FIXED_ANIM_FPS,
                     false /*noLoop*/
                 )
+/*
+                console.log(cmmAnimIdx, parsed.soundSizes[cmmAnimIdx])
+                if (cmmAnimIdx < parsed.soundSizes.length && parsed.soundSizes[cmmAnimIdx]) {
+                    // We have a sound...
+                    console.log(`Resampling audio ${cmmAnimIdx}`)
+                    const buffer = new ArrayBuffer(parsed.soundSizes[cmmAnimIdx] * 4)
+                    const view = new DataView(buffer)
+                    const src = parsed.sounds[cmmAnimIdx]
+                    for (let i = 0; i < src.length; i++) {
+                        const val = Math.floor(src[i] * 256)
+                        view.setUint16(i * 4 + 0, val, true)
+                        view.setUint16(i * 4 + 2, val, true) // XXX find a better upsampling method :P
+                    }
+                    clip.audio = {
+                        name: `snd${cmmAnimIdx}`,
+                        pcm: new Uint8ClampedArray(buffer),
+                    }
+                }*/
                 clip.userData = { fps: FIXED_ANIM_FPS }
                 mesh.animations.push(clip)
+                ++cmmAnimIdx
             })
         }
 
