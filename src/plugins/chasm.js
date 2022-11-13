@@ -22,6 +22,8 @@ import {
     setLinearFilters
 } from '../utils.js'
 
+const FIXED_ANIM_FPS = 18
+
 export class ChasmPlugin extends Plugin {
     constructor(gui, camera) {
         super(gui, camera)
@@ -247,10 +249,10 @@ export class ChasmPlugin extends Plugin {
                 const clip = AnimationClip.CreateFromMorphTargetSequence(
                     `anim${aidx}`,
                     seq,
-                    5, // TODO
+                    FIXED_ANIM_FPS,
                     false /*noLoop*/
                 )
-                clip.userData = { fps: 5 }
+                clip.userData = { fps: FIXED_ANIM_FPS }
                 mesh.animations.push(clip)
             })
         }
