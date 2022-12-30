@@ -596,15 +596,16 @@ export class CarnivoresPlugin extends Plugin {
 
     async loadA3DF(buf, baseName) {
         const parsed = new A3DF(new KaitaiStream(buf))
-        const convuv = (f4) => Math.floor(f4 * 256)
+        console.log(parsed)
+        const convuv = (f4) => Math.floor(f4 * 255)
         const data = {
             name: baseName,
-            vertices: parsed.vertices.map(v => ({
+            vertices: parsed.lods[0].vertices.map(v => ({
                 position: [ v.x, v.y, v.z ],
                 bone: v.owner,
                 hide: v.hide,
             })),
-            faces: parsed.faces.map(f => ({
+            faces: parsed.lods[0].faces.map(f => ({
                 indices: [ f.a, f.b, f.c ],
                 uvs: [ convuv(f.tax), convuv(f.tay), convuv(f.tbx), convuv(f.tby), convuv(f.tcx), convuv(f.tcy) ],
                 flags: f.flags,
@@ -613,7 +614,7 @@ export class CarnivoresPlugin extends Plugin {
                 next: 0,
                 group: 0,
             })),
-            bones: parsed.bones.map(b => ({
+            bones: parsed.lods[0].bones.map(b => ({
                 name: b.name,
                 position: [ b.x, b.y, b.z ],
                 parent: b.owner,

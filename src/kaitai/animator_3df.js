@@ -2,7 +2,6 @@
 import { KaitaiStream } from "kaitai-struct"
 
 // This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
-
   function Animator3df(_io, _parent, _root) {
     this._io = _io;
     this._parent = _parent;
@@ -22,32 +21,48 @@ import { KaitaiStream } from "kaitai-struct"
     for (var i = 0; i < this.textureCount; i++) {
       this.textures.push(KaitaiStream.bytesToStr(KaitaiStream.bytesTerminate(this._io.readBytes(16), 0, false), "utf8"));
     }
-    this.fixed1 = this._io.readBytes(4);
-    if (!((KaitaiStream.byteArrayCompare(this.fixed1, [1, 0, 0, 0]) == 0))) {
-      throw new KaitaiStream.ValidationNotEqualError([1, 0, 0, 0], this.fixed1, this._io, "/seq/5");
-    }
-    this.vertexCount = this._io.readU4le();
-    this.faceCount = this._io.readU4le();
-    this.boneCount = this._io.readU4le();
-    this.vertices = [];
-    for (var i = 0; i < this.vertexCount; i++) {
-      this.vertices.push(new Vertex(this._io, this, this._root));
-    }
-    this.faces = [];
-    for (var i = 0; i < this.faceCount; i++) {
-      this.faces.push(new Face(this._io, this, this._root));
-    }
-    this.bones = [];
-    for (var i = 0; i < this.boneCount; i++) {
-      this.bones.push(new Bone(this._io, this, this._root));
-    }
-    this.textureIdPerFace = this._io.readBytes(this.faceCount);
-    this.faceByTextureCounts = [];
-    for (var i = 0; i < this.textureCount; i++) {
-      this.faceByTextureCounts.push(this._io.readU4le());
+    this.lodCount = this._io.readU4le();
+    this.lods = [];
+    for (var i = 0; i < this.lodCount; i++) {
+      this.lods.push(new Lod(this._io, this, this._root));
     }
   }
 
+  var Lod = Animator3df.Lod = (function() {
+    function Lod(_io, _parent, _root) {
+      this._io = _io;
+      this._parent = _parent;
+      this._root = _root || this;
+
+      this._read();
+    }
+    Lod.prototype._read = function() {
+      this.vertexCount = this._io.readU4le();
+      this.faceCount = this._io.readU4le();
+      this.boneCount = this._io.readU4le();
+      this.vertices = [];
+      for (var i = 0; i < this.vertexCount; i++) {
+        this.vertices.push(new Vertex(this._io, this, this._root));
+      }
+      this.faces = [];
+      for (var i = 0; i < this.faceCount; i++) {
+        this.faces.push(new Face(this._io, this, this._root));
+      }
+      this.bones = [];
+      for (var i = 0; i < this.boneCount; i++) {
+        this.bones.push(new Bone(this._io, this, this._root));
+      }
+      this.textureIdPerFace = this._io.readBytes(this.faceCount);
+      this.faceByTextureCounts = [];
+      for (var i = 0; i < this._root.textureCount; i++) {
+        this.faceByTextureCounts.push(this._io.readU4le());
+      }
+    }
+
+    return Lod;
+  })();
+
+  var Vertex = Animator3df.Vertex = (function() {
     function Vertex(_io, _parent, _root) {
       this._io = _io;
       this._parent = _parent;
@@ -63,6 +78,10 @@ import { KaitaiStream } from "kaitai-struct"
       this.hide = this._io.readS2le();
     }
 
+    return Vertex;
+  })();
+
+  var Face = Animator3df.Face = (function() {
     function Face(_io, _parent, _root) {
       this._io = _io;
       this._parent = _parent;
@@ -83,6 +102,10 @@ import { KaitaiStream } from "kaitai-struct"
       this.tcy = this._io.readF4le();
     }
 
+    return Face;
+  })();
+
+  var Bone = Animator3df.Bone = (function() {
     function Bone(_io, _parent, _root) {
       this._io = _io;
       this._parent = _parent;
@@ -98,5 +121,13 @@ import { KaitaiStream } from "kaitai-struct"
       this.owner = this._io.readS2le();
       this.hide = this._io.readS2le();
     }
-  
+
+    /**
+     * Parent bone, or -1 if no parent
+     */
+
+    return Bone;
+  })();
+
+
 export default Animator3df

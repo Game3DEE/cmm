@@ -18,35 +18,41 @@ seq:
     size: 16
     repeat: expr
     repeat-expr: texture_count
-  - id: fixed_1
-    contents: [ 1,0,0,0 ]
-    doc: likely LOD count
-  - id: vertex_count
+  - id: lod_count
     type: u4
-  - id: face_count
-    type: u4
-  - id: bone_count
-    type: u4
-  - id: vertices
-    type: vertex
+  - id: lods
+    type: lod
     repeat: expr
-    repeat-expr: vertex_count
-  - id: faces
-    type: face
-    repeat: expr
-    repeat-expr: face_count
-  - id: bones
-    type: bone
-    repeat: expr
-    repeat-expr: bone_count
-  - id: texture_id_per_face
-    size: face_count
-  - id: face_by_texture_counts
-    type: u4
-    repeat: expr
-    repeat-expr: texture_count
-
+    repeat-expr: lod_count
+    
 types:
+  lod:
+    seq:
+      - id: vertex_count
+        type: u4
+      - id: face_count
+        type: u4
+      - id: bone_count
+        type: u4
+      - id: vertices
+        type: vertex
+        repeat: expr
+        repeat-expr: vertex_count
+      - id: faces
+        type: face
+        repeat: expr
+        repeat-expr: face_count
+      - id: bones
+        type: bone
+        repeat: expr
+        repeat-expr: bone_count
+      - id: texture_id_per_face
+        size: face_count
+      - id: face_by_texture_counts
+        type: u4
+        repeat: expr
+        repeat-expr: _root.texture_count
+  
   vertex:
     seq:
       - id: x
