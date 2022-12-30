@@ -152,6 +152,24 @@ export class CarnivoresPlugin extends Plugin {
             v.position[2] *= zFactor
         })
 
+        // Adjust skeleton
+        if (this.activeModel.isSkinnedMesh && this.activeModel.skeleton) {
+            this.activeModel.pose()
+
+            const scale = new Vector3(xFactor, yFactor, zFactor)
+            this.activeModel.skeleton?.bones.forEach(b => {
+                b.position.multiply(scale)
+            })
+            cpmData.bones.forEach(b => {
+                b.position[0] *= xFactor
+                b.position[1] *= yFactor
+                b.position[2] *= zFactor
+            })
+
+            const newSkeleton = new Skeleton(this.activeModel.skeleton.bones)
+            this.activeModel.bind(newSkeleton)
+        }
+
         // Scale animation vertices
         const newPosition = []
         const { position } = this.activeModel.geometry.morphAttributes
