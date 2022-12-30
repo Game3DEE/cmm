@@ -58,13 +58,13 @@ let rsc = {
     textureCount: rst.tiles.atlas_tiles_in_row * rst.tiles.atlas_tiles_in_column,
     modelCount: rst.objects.count,
     
-    dawnSkyRGB: rst.sky.dawn_sky_color,
-    daySkyRGB: rst.sky.day_sky_color,
-    nightSkyRGB: rst.sky.night_sky_color,
+    dawnSkyRGB: [ 255, 255, 255 ], //rst.sky.dawn_sky_color,
+    daySkyRGB: [ 255, 255, 255 ], //rst.sky.day_sky_color,
+    nightSkyRGB: [ 255, 255, 255 ], //rst.sky.night_sky_color,
 
-    dawnSkyTRGB: rst.sky.dawn_sun_color,
-    daySkyTRGB: rst.sky.day_sun_color,
-    nightSkyTRGB: rst.sky.night_sun_color,
+    dawnSkyTRGB: [ 255, 255, 255 ], //rst.sky.dawn_sun_color,
+    daySkyTRGB: [ 255, 255, 255 ], //rst.sky.day_sun_color,
+    nightSkyTRGB: [ 255, 255, 255 ], //rst.sky.night_sun_color,
 
     textures: await generateTerrainTextureData(rst.tiles.atlas_texture, rst.tiles.atlas_tiles_in_row, rst.tiles.atlas_tiles_in_column),
     objects: [], // TODO: load objects (and their textures)
@@ -90,7 +90,7 @@ function rgbaTo16Bits(r,g,b,a = 0) {
 }
 
 function rgbaTo32Bits(r,g,b,a = 0xff) {
-    return b | (g << 8) | (r << 16) | (a << 24)
+    return r | (g << 8) | (b << 16) | (a << 24)
 }
 
 function generateWaterTable({ list }) {
