@@ -138,6 +138,9 @@ export class CarnivoresPlugin extends Plugin {
     }
 
     scaleModelAndAnims(xFactor, yFactor, zFactor) {
+        // HACK!
+        this.activeModel.userData.mixer.stopAllAction()
+
         // Scale base geometry
         this.activeModel.geometry.scale(xFactor, yFactor, zFactor)
 

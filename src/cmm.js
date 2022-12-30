@@ -86,6 +86,7 @@ function setModel(newModel, plug) {
 
         mixer = new AnimationMixer(model)
         mixer.addEventListener('loop', animLoopHandler)
+        model.userData.mixer = mixer
     }
 
     // hide or show "Show Skeleton"
