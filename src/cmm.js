@@ -51,10 +51,15 @@ const settings = {
 function createAudioBuffer(data) {
     if (!data.length) return null
 
-    const buffer = listener.context.createBuffer(1, data.length / 2, 22050)
+    // Round data length to multiples of 2,
+    // it seems some models (those by tormers) have
+    // uneven sound lengths: tested with JPHgastornis.car
+    const dataLen = Math.floor(data.length / 2) * 2
+
+    const buffer = listener.context.createBuffer(1, dataLen / 2, 22050)
     const channelFloats = buffer.getChannelData(0)
-    const dv = new DataView(data.buffer, data.byteOffset, data.length)
-    for (let i = 0; i < data.length / 2; i++) {
+    const dv = new DataView(data.buffer, data.byteOffset, dataLen)
+    for (let i = 0; i < dataLen / 2; i++) {
         channelFloats[i] = dv.getInt16(i * 2, true) / 32767
     }
     return buffer;
