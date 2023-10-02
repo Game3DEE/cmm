@@ -1,0 +1,7 @@
+Weapon : Shotgun
+
+The target area for this weapon is the center
+of the sighting circle.  Although powerful,
+aim your shot well. The shotgun will scare
+plant eaters, causing them to scatter, but the
+noise will alert dangerous carnivores.

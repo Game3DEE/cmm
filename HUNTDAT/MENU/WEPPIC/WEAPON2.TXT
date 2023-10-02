@@ -1,0 +1,7 @@
+Weapon : X-Bow
+
+This weapon has two target areas, called
+aiming pins. The top pin is sighted in for
+40 meters, and the bottom pin is sighted for
+80 meters. It is relatively silent, and can be
+shot several times without alerting dinosaurs.

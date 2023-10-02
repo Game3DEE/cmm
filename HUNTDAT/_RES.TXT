@@ -1,0 +1,172 @@
+weapons {
+    {
+        name = 'Shotgun'
+        file = 'weapon1.car'
+        pic = 'bullet1.tga'
+        power = 1.5
+        prec = 1.1
+        loud = 0.3
+        rate = 1.6
+        shots = 6
+    }
+
+    {
+        name = 'X-Bow'
+        file = 'weapon2.car'
+        pic = 'bullet2.tga'
+        power = 1.1
+        prec = 0.7
+        loud = 1.9
+        rate = 1.2
+        shots = 8
+    }
+
+    {
+        name = 'Sniper Rifle'
+        file = 'weapon3.car'
+        pic = 'bullet3.tga'
+        power = 1.0
+        prec = 1.8
+        loud = 0.6
+        rate = 1.0
+        shots = 6
+    }
+} //==== end of weapons =========//
+
+characters {
+    {
+        name = 'Moschops'
+        health = 2
+        mass = 0.15
+		scale0 = 800
+		scalea = 600
+    }
+
+    {
+        name = 'Galimimus'
+        health = 2
+        mass = 0.1
+		scale0 = 800
+		scalea = 600
+    }
+
+    {
+	    name = 'Dimorphodon'
+        health = 1
+	    mass = 0.05
+		scale0 = 800
+		scalea = 600
+    }
+
+    {
+	    name = ''
+    }
+
+    {
+    	name = 'Parasaurolophus'
+        mass = 1.5
+        length = 5.8
+        radius = 320
+        health = 5
+        basescore = 6
+        smell = 0.8
+        hear = 1
+        look = 0.4
+        shipdelta = 48
+		scale0 = 800
+		scalea = 600
+    }
+
+    {
+        name = 'Pachycephalosaurus'
+        mass = 0.8
+        length = 4.5
+        radius = 280
+        health = 4
+        basescore = 8
+        smell = 0.4
+        hear = 0.8
+        look = 0.6
+        shipdelta = 36
+		scale0 = 800
+		scalea = 600
+    }
+
+    {
+        name = 'Stegosaurus'
+        mass = 7
+        length = 7
+        radius = 480
+        health = 5
+        basescore = 7
+        smell = 0.4
+        hear = 0.8
+        look = 0.6
+        shipdelta = 128
+		scale0 = 800
+		scalea = 600
+    }
+
+    {
+        name = 'Allosaurus'
+        mass = 0.5
+        length = 4.2
+        radius = 256
+        health = 3
+        basescore = 12
+        scale0 = 1000
+        scalea = 600
+        smell = 1.0
+        hear = 0.3
+        look = 0.5
+        shipdelta = 32
+        dangercall = TRUE
+    }
+
+    {
+        name = 'Triceratops'
+        mass = 3
+        length = 5
+        radius = 512
+        health = 8
+        basescore = 9
+        smell = 0.6
+        hear = 0.5
+        look = 0.4
+        shipdelta = 148
+		scale0 = 800
+		scalea = 600
+    }
+
+    {
+        name = 'Velociraptor'
+        mass = 0.3
+        length = 4
+        radius = 256
+        health = 3
+        basescore = 16
+		scale0 = 800
+        scalea = 400
+        smell = 1
+        hear = 0.5
+        look = 0.4
+        shipdelta = -24
+        dangercall = 1
+    }
+
+    {
+        name = 'T-Rex'
+        mass = 6
+        length = 12
+        radius = 400
+        health = 1024
+        basescore = 20
+        smell = 0.85
+        hear = 0.8
+        look = 0.8
+        shipdelta = 168
+        dangercall = 1
+		scale0 = 800
+		scalea = 600
+    }
+}

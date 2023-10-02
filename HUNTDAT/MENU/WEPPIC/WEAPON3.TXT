@@ -1,0 +1,7 @@
+Weapon : Sniper rifle
+
+This weapon is very accurate, and will shoot
+exactly where the crosshairs are placed. Its
+range goes as far as the binoculars, but is
+narrow. This is not a weapon for a charging meat
+eater, but fantastic for distance shots.

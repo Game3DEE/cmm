@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <title>Carnivores Map Tester</title>
+    <style>
+      body {
+          margin: 0;
+          font-family: monospace;
+          width: 100%;
+          background: #333333;
+          color: #fff;
+          user-select: none;
+      }
+
+      #minimap {
+        display: none; /* minimap is hidden by default */
+        position: absolute;
+        width: 276px;
+        height: 290px;
+        top: 50%;
+        left: 50%;
+        margin: -138px 0 0 -145px;
+        z-index: 2;
+      }
+
+      #b {
+        position: absolute;
+        top: 10px;
+        width: 100%;
+        text-align: center;
+        z-index: 2;
+      }
+      
+      a:visited {
+        color: green;
+      }
+
+      #loading {
+        background-color: #00f;
+        font-size: 30px;
+        color: #fff;
+        position: absolute;
+        left: 10%;
+        top: 50%;
+      }
+
+      #left {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 50%;
+        }
+
+        #right {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 50%;
+        }
+
+    </style>
+  </head>
+  <body>
+    <div id="b">
+      <a href="http://game3dee.com/cmm/game.html">Carnivores Map Tester</a> - Game3DEE<br/>
+      Teaser running with data from Carnivores 1 Demo<br/>
+      WASD to move, Cursor keys to look, X to crouch, H to hide HUD, TAB for radar
+    </div>
+    <p id="loading">Loading map, please be patient...</p>
+    <canvas id="minimap"></canvas>
+    <div id="left"></div>
+    <div id="right"></div>
+  </body>
+  <script src="game.js"></script>
+</html>
