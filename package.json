@@ -22,7 +22,7 @@
   "homepage": "https://gitlab.com/game3dee/view3dn#readme",
   "dependencies": {
     "gl-matrix": "^3.4.3",
-    "kaitai-struct": "^0.9.0",
+    "kaitai-struct": "^0.10.0",
     "nipplejs": "^0.9.0",
     "three": "^0.135.0"
   },
