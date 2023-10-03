@@ -25,7 +25,8 @@ import {
 export class VivisectorPlugin extends Plugin {
     async loadFile(url, ext, baseName) {
         switch(ext) {
-            case 'cmf': return [ { type: DataType.Model, model: this.loadModel(await this.loadFromURL(url), baseName) }]
+            case 'csf': return [ { type: DataType.Model, model: this.loadModel(await this.loadFromURL(url), baseName, false) }]
+            case 'cmf': return [ { type: DataType.Model, model: this.loadModel(await this.loadFromURL(url), baseName, true) }]
             case 'trk': return [ { type: DataType.Animation, animation: this.loadAnimation(await this.loadFromURL(url), baseName) }]
         }
     }
@@ -81,7 +82,7 @@ export class VivisectorPlugin extends Plugin {
         return new AnimationClip(baseName, -1, keyFrameTracks)
     }
 
-    loadModel(buffer, baseName) {
+    loadModel(buffer, baseName, isCMF) {
         const parsed = new CMF(new KaitaiStream(buffer))
         console.log(parsed)
 
@@ -146,11 +147,7 @@ export class VivisectorPlugin extends Plugin {
 
         let matId = -1
         faces?.forEach((f,i) => {
-            if (f.c !== f.d) {
-                console.error(`CMF FACES block has face with ${f.c} !== ${f.d} at ${i}`)
-                return
-            }
-
+            // Handle material
             if (indices && matId !== indices[i]) {
                 if (matId !== -1) {
                     const grp = groups[groups.length -1]
@@ -183,6 +180,33 @@ export class VivisectorPlugin extends Plugin {
                 uvs[i].bU, uvs[i].bV,
                 uvs[i].aU, uvs[i].aV,
             )
+
+            // If this face is a quad
+            if (f.d !== f.c) {
+                //gFaceL[0][i + 1].v1 = gFaceL[0][i].v1;
+                //gFaceL[0][i + 1].v2 = gFaceL[0][i].v3;
+                //ReadFile(hfile, &gFaceL[0][i + 1].v3, 4, &l, NULL);
+
+                if (boneVertMapping) {
+                    skinIndex.push(boneVertMapping[f.a], 0, 0, 0)
+                    skinWeight.push(1, 0, 0, 0)
+                    skinIndex.push(boneVertMapping[f.d], 0, 0, 0)
+                    skinWeight.push(1, 0, 0, 0)
+                    skinIndex.push(boneVertMapping[f.c], 0, 0, 0)
+                    skinWeight.push(1, 0, 0, 0)
+                }
+
+                position.push(
+                    vertices[f.a].x, vertices[f.a].y, vertices[f.a].z, 
+                    vertices[f.d].x, vertices[f.d].y, vertices[f.d].z, 
+                    vertices[f.c].x, vertices[f.c].y, vertices[f.c].z, 
+                )
+                uv.push(
+                    uvs[i].aU, uvs[i].aV,
+                    uvs[i].dU, uvs[i].dV,
+                    uvs[i].cU, uvs[i].cV,
+                )
+            }
         })
         if (groups.length) {
             const grp = groups[groups.length -1]
@@ -255,7 +279,7 @@ export class VivisectorPlugin extends Plugin {
     }
 
     supportedExtensions() {
-        return [ 'cmf', 'trk' ]
+        return [ 'cmf', 'csf', 'trk' ]
     }
 
     isMode() {
