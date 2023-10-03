@@ -24,7 +24,7 @@
     "gl-matrix": "^3.4.3",
     "kaitai-struct": "^0.10.0",
     "nipplejs": "^0.10.1",
-    "three": "^0.135.0"
+    "three": "^0.157.0"
   },
   "devDependencies": {
     "filehound": "^1.17.6",
