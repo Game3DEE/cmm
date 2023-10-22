@@ -155,7 +155,7 @@ export class ChasmPlugin extends Plugin {
         geo.computeVertexNormals()
 
         const texData = new Uint8ClampedArray(texHeight * texWidth * 4)
-        const pal = version == 0 ? demoChasm2Pal : chasm2Pal
+        const pal = /*version == 0 ? demoChasm2Pal :*/ chasm2Pal
         for (let i = 0; i < texWidth * texHeight; i++) {
             const pix = parsed.skin[i]
             texData[i*4 +0] = pal[pix*3+0] << 2 // chasm2Pal colors have 6 bits
