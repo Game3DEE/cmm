@@ -1,10 +1,15 @@
 meta:
   id: chasm_3o
-  title: Chasm: The Rift static model format
+  title: Chasm The Rift static model format
   file-extension: 3o
   endian: le
   encoding: utf8
 
+# https://moddingwiki.shikadi.net/wiki/3O_Format
+
+params:
+  - id: max_poly_count
+    type: u4
 seq:
   - id: polygons
     type: polygon
@@ -28,8 +33,6 @@ seq:
     size: skin_height * 64
     
 instances:
-  max_poly_count:
-    value: 400
   max_vertex_count:
     value: 938
 

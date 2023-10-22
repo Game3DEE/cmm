@@ -98,8 +98,16 @@ export class ChasmPlugin extends Plugin {
     }
 
     load3O(buffer, baseName) {
-        const parsed = new C3O(new KaitaiStream(buffer))
-        console.log(parsed)
+        let parsed, version = 0
+
+        try {
+            parsed = new C3O(new KaitaiStream(buffer), undefined, undefined, 400) // released chasm 3O format
+            version = 1
+        } catch(e) {
+            console.log(e)
+            parsed = new C3O(new KaitaiStream(buffer), undefined, undefined, 300) // Chasm Demo Test v1.02 (Entering Shadow Zone)
+        }
+        console.log(`v${version}`, parsed)
 
         const texWidth = 64
         const texHeight = parsed.skinHeight
@@ -147,11 +155,12 @@ export class ChasmPlugin extends Plugin {
         geo.computeVertexNormals()
 
         const texData = new Uint8ClampedArray(texHeight * texWidth * 4)
+        const pal = version == 0 ? demoChasm2Pal : chasm2Pal
         for (let i = 0; i < texWidth * texHeight; i++) {
             const pix = parsed.skin[i]
-            texData[i*4 +0] = chasm2Pal[pix*3+0] << 2 // chasm2Pal colors have 6 bits
-            texData[i*4 +1] = chasm2Pal[pix*3+1] << 2
-            texData[i*4 +2] = chasm2Pal[pix*3+2] << 2
+            texData[i*4 +0] = pal[pix*3+0] << 2 // chasm2Pal colors have 6 bits
+            texData[i*4 +1] = pal[pix*3+1] << 2
+            texData[i*4 +2] = pal[pix*3+2] << 2
             texData[i*4 +3] = 0xff
         }
         const map = new DataTexture(texData, texWidth, texHeight, RGBAFormat, UnsignedByteType)
@@ -329,7 +338,7 @@ export class ChasmPlugin extends Plugin {
     }
 }
 
-const chasm2Pal = [
+const chasm2Pal = [ // ripped from chasm2.pal of release version
     0x01, 0x01, 0x01, 0x04, 0x04, 0x04, 0x07, 0x07, 0x07, 0x09, 0x09, 0x09, 0x0c, 0x0c, 0x0c, 0x0f,
     0x0f, 0x0f, 0x11, 0x11, 0x11, 0x14, 0x14, 0x14, 0x17, 0x17, 0x17, 0x19, 0x19, 0x19, 0x1c, 0x1c,
     0x1c, 0x1f, 0x1f, 0x1f, 0x21, 0x21, 0x21, 0x24, 0x24, 0x24, 0x27, 0x27, 0x27, 0x2a, 0x2a, 0x2a,
@@ -379,4 +388,3 @@ const chasm2Pal = [
     0x10, 0x0c, 0x0a, 0x13, 0x08, 0x11, 0x1b, 0x0f, 0x18, 0x24, 0x16, 0x1f, 0x2c, 0x1d, 0x26, 0x35,
     0x24, 0x2d, 0x3e, 0x2b, 0x18, 0x08, 0x02, 0x1f, 0x0c, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ]
-
