@@ -1,5 +1,7 @@
-// SCCS' Prism3D engine support
 import { DataType, Plugin } from './plugin.js'
+
+// earliest demo files: https://www.chasmaction.com/files/demos/1.02%201996-07-04/
+// Map Editor instructions: https://steamcommunity.com/sharedfiles/filedetails/?id=2876780243
 
 import { KaitaiStream } from 'kaitai-struct'
 import C3O from '../kaitai/chasm_3o.js'
