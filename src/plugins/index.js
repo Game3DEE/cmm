@@ -9,6 +9,7 @@ import { CityscapePlugin } from './cityscape.js'
 import { Prism3DPlugin } from './prism3d.js'
 import { ChasmPlugin } from './chasm.js'
 import { Quickdraw3DPlugin } from './quickdraw3d.js'
+import { Riot3DPlugin } from './riot3d.js'
 import { GenericPlugin } from './generic.js'
 export { DataType } from './plugin.js'
 
@@ -22,6 +23,7 @@ export function setupPlugins(gui, camera) {
         new Prism3DPlugin(gui),
         new ChasmPlugin(gui),
         new Quickdraw3DPlugin(gui),
+        new Riot3DPlugin(gui),
         new GenericPlugin(gui),
         // texture plugins
         new BrowserImagePlugin(gui),
