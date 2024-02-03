@@ -25,6 +25,8 @@ import {
 } from '../utils.js'
 
 const FIXED_ANIM_FPS = 18
+const scale = 32
+
 
 const ANIM_NAMES = [
     "move",         // 0
@@ -92,11 +94,77 @@ export class ChasmPlugin extends Plugin {
         switch(ext) {
             case '3o':
                 return this.load3O(await this.loadFromURL(url), baseName)
+            case 'ani':
+                return this.activeModel ? this.loadANI(await this.loadFromURL(url), baseName) : [];
             case 'car':
                 return this.loadCAR(await this.loadFromURL(url), baseName)
         }
 
         return undefined
+    }
+
+    loadANI(buffer, baseName) {
+        const dv = new DataView(buffer);
+        const origVertCount = dv.getUint16(0, true);
+        let offset = 2;
+        const frameCount = (buffer.byteLength - offset) / (origVertCount * 3 * 2);
+    
+        //console.log(this.activeModel.userData.mapping.length, origVertCount, frameCount);
+
+        /*
+        const { cpmData } = this.activeModel.userData
+        // If animation doesn't match model, forget about it
+        if (cpmData.vertices.length !== data.vertCount) {
+            return null
+        }*/
+
+        const ensureUnique = true;
+        if (ensureUnique) {
+            // Make sure baseName is a unique animation name
+            while( this.activeModel.animations?.find(anim => anim.name === baseName) )
+                baseName += "_dup"
+        }
+
+        // !!! If there's no animations yet, create the empty array
+        if (!this.activeModel.geometry.morphAttributes.position) {
+            this.activeModel.geometry.morphAttributes.position = []
+        }
+
+        const { mapping } = this.activeModel.userData
+        const cmmVertCount = this.activeModel.geometry.attributes.position.count
+        const { position } = this.activeModel.geometry.morphAttributes
+        const seq = []
+        for (let i = 0; i < frameCount; i++) {
+            const frame = []
+            const frameOffset = offset + i * origVertCount * 3 * 2
+            for (let j = 0; j < cmmVertCount; j++) {
+                const index = frameOffset + (mapping[j] * 3 * 2);
+                frame.push(
+                    dv.getInt16(index +0, true) / scale,
+                    dv.getInt16(index +4, true) / scale,
+                    -dv.getInt16(index +2, true) / scale,
+                )
+            }
+            const attr = new Float32BufferAttribute(frame, 3)
+            attr.name = `${baseName}.${i}`
+            position.push(attr)
+            seq.push({
+                name: attr.name,
+                vertices: [],
+            })
+        }
+        const clip = AnimationClip.CreateFromMorphTargetSequence(
+            baseName,
+            seq,
+            12,
+            false /*noLoop*/
+        )
+        //clip.userData = { fps: data.fps }
+
+        return [
+            { type: DataType.Animation, animation: clip },
+        ];
+
     }
 
     load3O(buffer, baseName) {
@@ -114,11 +182,10 @@ export class ChasmPlugin extends Plugin {
         const texWidth = 64
         const texHeight = parsed.skinHeight
 
-        const scale = 32
-
         const position = []
         const uvs = []
         //const index = []
+        const mapping = [];
 
         function addTriangle(a,b,c, aUv, bUv, cUv, vOffset) {
             let v = parsed.vertices[a]
@@ -127,6 +194,7 @@ export class ChasmPlugin extends Plugin {
             position.push(v.x / scale, v.z / scale, -v.y / scale)
             v = parsed.vertices[c]
             position.push(v.x / scale, v.z / scale, -v.y / scale)
+            mapping.push(a,b,c)
             uvs.push(
                 aUv.x / texWidth, (aUv.y + vOffset) / texHeight,
                 bUv.x / texWidth, (bUv.y + vOffset) / texHeight,
@@ -172,6 +240,7 @@ export class ChasmPlugin extends Plugin {
         mat.name = baseName
         const mesh = new Mesh(geo, mat)
         mesh.name = baseName
+        mesh.userData.mapping = mapping;
 
         return [
             { type: DataType.Texture, texture: map },
@@ -328,7 +397,7 @@ export class ChasmPlugin extends Plugin {
     }
 
     supportedExtensions() {
-        return [ '3o', 'car' ]
+        return [ '3o', 'ani', 'car' ]
     }
 
     isMode() {
