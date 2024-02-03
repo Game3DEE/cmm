@@ -683,6 +683,9 @@ export class CarnivoresPlugin extends Plugin {
 
     async loadANI(url, baseName) {
         const data = loadANI(await this.loadFromURL(url))
+        if (data === null) {
+            throw Error("Invalid Carnivores ANI format");
+        }
         const anim = this.generateAnimation(data, baseName, true)
         return anim ? [
             { type: DataType.Animation, animation: anim },

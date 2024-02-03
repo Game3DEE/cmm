@@ -5,6 +5,11 @@ export function loadANI(buffer) {
     const frameCount = dv.getUint32(4, true)
     const vertCount = dv.getUint32(8, true)
     let offset = 12
+
+    if (buffer.byteLength != offset + frameCount * vertCount * 3 * 2) {
+        return null
+    }
+
     const frames = new Int16Array(buffer, offset, frameCount * vertCount * 3)
     offset += frames.length * 2
 

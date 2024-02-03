@@ -247,6 +247,8 @@ async function openFile(url, name) {
         if (plug.supportedExtensions().includes(ext)) {
             try {
                 const data = await plug.loadFile(url, ext, baseName)
+                if (data.length == 0) continue; // plugin tried and failed to handle
+
                 let newModel = null
                 let newTextures = []
                 let newAnimations = []
