@@ -4,24 +4,56 @@
 import {
     AnimationClip,
     BufferGeometry,
+    DataTexture,
     Float32BufferAttribute,
     Mesh,
     MeshNormalMaterial,
+    RGBAFormat,
+    UnsignedByteType,
 } from 'three'
 
 import { DataType, Plugin } from './plugin.js'
 
 import { KaitaiStream } from 'kaitai-struct'
 import SSM from '../kaitai/primalprey_ssm.js'
+import STX from '../kaitai/sunstorm_stx.js'
 
 const scale = 32
 
 export class PrimalPreyPlugin extends Plugin {
     async loadFile(url, ext, baseName) {
-        const model = this.loadModel(await this.loadFromURL(url), baseName)
-        return [
-            { type: DataType.Model, model: model },
-        ]
+        if (ext == 'ssm') {
+            const model = this.loadModel(await this.loadFromURL(url), baseName)
+            return [
+                { type: DataType.Model, model: model },
+            ]
+        } else if (ext == 'stx') {
+            const tex = this.loadTexture(await this.loadFromURL(url), baseName)
+            return tex ? [{ type: DataType.Texture, texture: tex }] : []
+        }
+    }
+
+    loadTexture(buffer, baseName) {
+        const parsed = new STX(new KaitaiStream(buffer))
+        console.log(parsed)
+        if (parsed.format === '888') {
+            const width = parsed.width;
+            const height = parsed.height;
+            const rgb = parsed.mipmaps[0].rgb;
+            const data = new Uint8ClampedArray(width * height * 4);
+            let idx = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                data[i+2] = rgb[idx++]; // B
+                data[i+1] = rgb[idx++]; // G
+                data[i+0] = rgb[idx++]; // R
+                data[i+3] = 255;
+            }
+            const tex = new DataTexture(data, width, height, RGBAFormat, UnsignedByteType);
+            tex.name = baseName;
+            tex.needsUpdate = true;
+            return tex;
+        }
+        return null;
     }
 
     loadModel(buffer, baseName) {
@@ -122,7 +154,7 @@ export class PrimalPreyPlugin extends Plugin {
     }
 
     supportedExtensions() {
-        return [ 'ssm' ]
+        return [ 'ssm', 'stx' ]
     }
 
     isMode() {
