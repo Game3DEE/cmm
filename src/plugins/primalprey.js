@@ -36,17 +36,17 @@ export class PrimalPreyPlugin extends Plugin {
     loadTexture(buffer, baseName) {
         const parsed = new STX(new KaitaiStream(buffer))
         console.log(parsed)
-        if (parsed.format === '888') {
-            const width = parsed.width;
-            const height = parsed.height;
-            const rgb = parsed.mipmaps[0].rgb;
+        if (parsed.format === '888' || parsed.format === '8888') {
+            const { width, height, rgb, alpha } = parsed.mipmaps[0];
+            const hasAlpha = parsed.format === '8888';
+            console.log(width, height, rgb, alpha);
             const data = new Uint8ClampedArray(width * height * 4);
             let idx = 0;
             for (let i = 0; i < data.length; i += 4) {
                 data[i+2] = rgb[idx++]; // B
                 data[i+1] = rgb[idx++]; // G
                 data[i+0] = rgb[idx++]; // R
-                data[i+3] = 255;
+                data[i+3] = hasAlpha ? alpha[i/4] : 255;
             }
             const tex = new DataTexture(data, width, height, RGBAFormat, UnsignedByteType);
             tex.name = baseName;
