@@ -3,6 +3,7 @@
 
 import {
     AnimationClip,
+    Box3,
     BufferGeometry,
     DataTexture,
     Float32BufferAttribute,
@@ -10,6 +11,7 @@ import {
     MeshNormalMaterial,
     RGBAFormat,
     UnsignedByteType,
+    Vector3,
 } from 'three'
 
 import { DataType, Plugin } from './plugin.js'
@@ -21,6 +23,68 @@ import STX from '../kaitai/sunstorm_stx.js'
 const scale = 32
 
 export class PrimalPreyPlugin extends Plugin {
+    constructor(gui) {
+        super(gui)
+        this.activeModel = null;
+        this.guiOps = {
+            reset_origin: () => {
+                if (this.activeModel) {
+                    let bb = new Box3();
+                    bb.setFromObject(this.activeModel);
+                    let x = bb.min.x + (bb.max.x - bb.min.x) / 2
+                    let z = bb.min.z + (bb.max.z - bb.min.z) / 2
+                    let xlate = new Vector3(-x, -bb.min.y, -z);
+
+                    // Following is _very_ similar to scaleModelAndAnims, refactor into some applyMatrix4() function?
+                    // HACK!
+                    this.activeModel.userData.mixer.stopAllAction()
+            
+                    // Move base geometry
+                    this.activeModel.geometry.translate(xlate.x, xlate.y, xlate.z)
+            
+                    // Move animation vertices
+                    const newPosition = []
+                    const { position } = this.activeModel.geometry.morphAttributes
+                    position?.forEach(attr => {
+                        const array = []
+                        for (let i = 0; i < attr.array.length; i+=3) {
+                            let x = attr.array[i+0] + xlate.x
+                            let y = attr.array[i+1] + xlate.y
+                            let z = attr.array[i+2] + xlate.z
+                            array.push(x, y, z)
+                        }
+                        const newAttr = new Float32BufferAttribute(array, 3)
+                        newAttr.name = attr.name
+                        newAttr.needsUpdate = true
+                        newPosition.push(newAttr)
+                    })
+            
+                    this.activeModel.geometry.morphAttributes.position = newPosition
+                    this.activeModel.geometry = this.activeModel.geometry.clone()
+                    this.activeModel.updateMorphTargets()               
+                }
+            }
+        }
+    }
+
+    // Called when a different plugin is activated
+    deactivate() {
+        this.activeModel = null
+        this.customGui?.destroy()
+        this.customGui = null
+    }
+
+    // Called when a plugin is activated; gives it the change to add
+    // custom GUI options (like export)
+    // also called on new model load (from the same plugin)
+    activate(model) {
+        if (!this.customGui) {
+            this.customGui = this.gui.addFolder('PrimalPrey')
+            this.customGui.add(this.guiOps, 'reset_origin').name('Reset Origin');
+        }
+        this.activeModel = model
+    }
+    
     async loadFile(url, ext, baseName) {
         if (ext == 'ssm') {
             const model = this.loadModel(await this.loadFromURL(url), baseName)
@@ -39,7 +103,6 @@ export class PrimalPreyPlugin extends Plugin {
         if (parsed.format === '888' || parsed.format === '8888') {
             const { width, height, rgb, alpha } = parsed.mipmaps[0];
             const hasAlpha = parsed.format === '8888';
-            console.log(width, height, rgb, alpha);
             const data = new Uint8ClampedArray(width * height * 4);
             let idx = 0;
             for (let i = 0; i < data.length; i += 4) {
@@ -100,7 +163,7 @@ export class PrimalPreyPlugin extends Plugin {
         const mat = []
         groups.forEach(g => {
             const m = new MeshNormalMaterial()
-            m.name = parsed.objects[g.materialIndex].name
+            m.name = parsed.objects[g.materialIndex]?.name || `material${g.materialIndex}`
             mat.push(m)
         })
 
