@@ -2,10 +2,13 @@ import { DataType, Plugin } from './plugin.js'
 
 // earliest demo files: https://www.chasmaction.com/files/demos/1.02%201996-07-04/
 // Map Editor instructions: https://steamcommunity.com/sharedfiles/filedetails/?id=2876780243
+// Some file info docs: https://moddingwiki.shikadi.net/wiki/Chasm:_The_Rift
 
 import { KaitaiStream } from 'kaitai-struct'
 import C3O from '../kaitai/chasm_3o.js'
 import CAR from '../kaitai/chasm_car.js'
+import CEL from '../kaitai/chasm_cel.js'
+
 import { saveTGA } from '../formats/tga.js'
 import {
     AnimationClip,
@@ -98,6 +101,8 @@ export class ChasmPlugin extends Plugin {
                 return this.activeModel ? this.loadANI(await this.loadFromURL(url), baseName) : [];
             case 'car':
                 return this.loadCAR(await this.loadFromURL(url), baseName)
+            case 'cel':
+                return this.loadCEL(await this.loadFromURL(url), baseName)
         }
 
         return undefined
@@ -396,8 +401,33 @@ export class ChasmPlugin extends Plugin {
         ]
     }
 
+    loadCEL(buffer, baseName) {
+        const parsed = new CEL(new KaitaiStream(buffer))
+        console.log(parsed)
+
+        const texWidth = parsed.width
+        const texHeight = parsed.height
+
+        const texData = new Uint8ClampedArray(texHeight * texWidth * 4)
+        for (let i = 0; i < texWidth * texHeight; i++) {
+            const pix = parsed.data[i]
+            texData[i*4 +0] = parsed.palette[pix].r << 2 // palette colors have 6 bits
+            texData[i*4 +1] = parsed.palette[pix].g << 2
+            texData[i*4 +2] = parsed.palette[pix].b << 2
+            texData[i*4 +3] = 0xff
+        }
+        const map = new DataTexture(texData, texWidth, texHeight, RGBAFormat, UnsignedByteType)
+        setLinearFilters(map)
+        map.name = baseName
+        map.wrapS = map.wrapT = RepeatWrapping
+
+        return [
+            { type: DataType.Texture, texture: map },
+        ]
+    }
+
     supportedExtensions() {
-        return [ '3o', 'ani', 'car' ]
+        return [ '3o', 'ani', 'car', 'cel' ]
     }
 
     isMode() {
