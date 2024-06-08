@@ -15,6 +15,7 @@ import {
     Uint16BufferAttribute,
     UnsignedByteType,
     Vector3,
+    Vector2,
 } from 'three'
 
 import { DataType, Plugin } from './plugin.js'
@@ -61,6 +62,12 @@ export class CarnivoresPlugin extends Plugin {
         this.customGui = null
         this.activeModel = null
         this.guiOps = {
+            flagBasedOnAlpha: () => {
+                this.flagBasedOnTexture((texture,offset) => texture[offset+3] == 0)
+            },
+            flagBasedOnBlack: () => {
+                this.flagBasedOnTexture((texture,offset) => texture[offset+0] == 0 && texture[offset+1] == 0 && texture[offset+2] == 0)
+            },
             // Enable/disable flag editing mode
             flagEdit: false,
             // flag status of current triangle
@@ -466,6 +473,8 @@ export class CarnivoresPlugin extends Plugin {
             this.customGui.add(this.guiOps, 'exportCAR').name('Export CAR')
             this.customGui.add(this.guiOps, 'exportTGA32').name('Export 32-bit TGA')
             this.customGui.add(this.guiOps, 'exportTGA16').name('Export 16-bit TGA')
+            this.customGui.add(this.guiOps, 'flagBasedOnAlpha').name('Flag opacity based on alpha')
+            this.customGui.add(this.guiOps, 'flagBasedOnBlack').name('Flag opacity based on black pixels')
             this.customGui.add(this.guiOps, 'flagEdit').name('Edit Flags').onChange(editFlagsChanged)
             const flagsFolder = this.customGui.addFolder('Flags')
             const setBitFlag = (bit, turnOn) => {
@@ -988,5 +997,60 @@ export class CarnivoresPlugin extends Plugin {
         tex.name = baseName
 
         return tex
+    }
+
+    flagBasedOnTexture(isTransparentPixel) {
+        const texture = this.activeModel.material.map
+        if (!texture) return
+        const textureData = texture.image.data
+        const { cpmData } = this.activeModel.userData
+        if (!cpmData) return
+
+        cpmData.faces.forEach(face => {
+            if (this.isFaceTransparentBasedOnTexture(
+                textureData, texture.image.width, texture.image.height,
+                ...face.uvs, // array of 3 x/y integer values
+                isTransparentPixel,
+            )) {
+                face.flags |= 8 /* transparent */ | 4 /* opacity */
+            }
+        })
+    }
+
+    // pixels => ptr to RGBA Uint8Array
+    // width => width of texture in pixels
+    // width => height of texture in pixels
+    // x,y,x1,y1,x2,y2 => coordinates for triangle
+    // Algo from: http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
+    isFaceTransparentBasedOnTexture(pixels,width,height, x1,y1,x2,y2,x3,y3,func) {
+        const maxX = Math.max(x1, Math.max(x2, x3));
+        const minX = Math.min(x1, Math.min(x2, x3));
+        const maxY = Math.max(y1, Math.max(y2, y3));
+        const minY = Math.min(y1, Math.min(y2, y3));
+    
+        const vs1 = new Vector2(x2 - x1, y2 - y1);
+        const vs2 = new Vector2(x3 - x1, y3 - y1);
+        
+        let q = new Vector2()
+    
+        for (let x = minX; x <= maxX; x++) {
+            for (let y = minY; y <= maxY; y++) {
+                q.set(x - x1, y - y1);
+    
+                let s = q.cross(vs2) / vs1.cross(vs2);
+                let t = vs1.cross(q) / vs1.cross(vs2);
+    
+                if ( (s >= 0) && (t >= 0) && (s + t <= 1)) {
+                    /* inside triangle */
+                    var pixOff = ((y * width) + x) * 4
+                    if (func(pixels,pixOff)) {
+                        // Found a transparent pixel, so we flag this whole face as transparent
+                        return true
+                    }
+                }
+            }
+        }
+
+        return false
     }
 }

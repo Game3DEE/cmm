@@ -1,12 +1,22 @@
 import { load3DF } from '../formats/3df.js'
 import { writeFileSync, readFileSync } from 'fs'
 import { PNG } from 'pngjs'
+import { Vector2 } from 'three'
 
 const { model } = load3DF(readFileSync(process.argv[2]).buffer)
 const texture = convertTexture(model.texture, model.textureSize)
 
 const sfOpacity = 4
 const sfTransparent = 8
+
+const png = new PNG({
+    width: texture.width,
+    height: texture.height,
+})
+
+texture.data.forEach((v,i) => png.data[i] = v)
+
+writeFileSync('orig.png', PNG.sync.write(png))
 
 model.faces.forEach(face => {
     if (face.flags & sfOpacity) {
@@ -29,10 +39,6 @@ model.faces.forEach(face => {
     */
 })
 
-const png = new PNG({
-    width: texture.width,
-    height: texture.height,
-})
 
 texture.data.forEach((v,i) => png.data[i] = v)
 
@@ -73,56 +79,34 @@ function convertTexture(texture, textureBytes) {
 // width => width of texture in pixels
 // width => height of texture in pixels
 // x,y,x1,y1,x2,y2 => coordinates for triangle
-// color => 0 = base alpha value on color, other = exact value to use
-function fillAlphaTriangle(pixels,width,height, x0,y0,x1,y1,x2,y2, color) {
-    let tmp = 0
-    // sort the points vertically
-    if (y1 > y2) {
-        tmp = x1; x1 = x2; x2 = tmp
-        tmp = y1; y1 = y2; y2 = tmp
-    }
-    if (y0 > y1) {
-        tmp = x0; x0 = x1; x1 = tmp
-        tmp = y0; y0 = y1; y1 = tmp
-    }
-    if (y1 > y2) {
-        tmp = x1; x1 = x2; x2 = tmp
-        tmp = y1; y1 = y2; y2 = tmp
-    }
+// Algo from: http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
+function fillAlphaTriangle(pixels,width,height, x1,y1,x2,y2,x3,y3) {
+    /* get the bounding box of the triangle */
+    const maxX = Math.max(x1, Math.max(x2, x3));
+    const minX = Math.min(x1, Math.min(x2, x3));
+    const maxY = Math.max(y1, Math.max(y2, y3));
+    const minY = Math.min(y1, Math.min(y2, y3));
 
-    //console.log(x0,y0,x1,y1,x2,y2)
+    const vs1 = new Vector2(x2 - x1, y2 - y1);
+    const vs2 = new Vector2(x3 - x1, y3 - y1);
+    
+    let q = new Vector2()
 
-    const dx_far = (x2 - x0) / (y2 - y0 + 1)
-    const dx_upper = (x1 - x0) / (y1 - y0 + 1)
-    const dx_low = (x2 - x1) / (y2 - y1 + 1)
+    for (let x = minX; x <= maxX; x++) {
+        for (let y = minY; y <= maxY; y++) {
+            q.set(x - x1, y - y1);
 
-    let xf = x0
-    let xt = x0 + dx_upper // if y0 == y1, special case
+            let s = q.cross(vs2) / vs1.cross(vs2);
+            let t = vs1.cross(q) / vs1.cross(vs2);
 
-    function calcAlpha(offset) {
-        const pix = (pixels[offset+0] + pixels[offset+1] + pixels[offset+2]) / 3
-        if (pix < 32) // find good margin
-            return 0
-
-        return 255
-    }
-
-    let offset = 0
-    for (let y = y0; y <= ((y2 > height-1) ? height-1 : y2); y++) {
-        if (y >= 0) {
-            for (let x = ((xf > 0) ? Math.floor(xf) : 0); x <= ((xt < width) ? xt : width-1) ; x++) {
-                offset = Math.floor(x + y * width) * 4
-                pixels[offset +3] = color ? color : calcAlpha(offset)
-            }
-            for (let x = ((xf < width) ? Math.floor(xf) : width-1); x >= ((xt > 0) ? xt : 0); x--) {
-                offset = Math.floor(x + y * width) * 4
-                pixels[offset +3] = color ? color : calcAlpha(offset)
+            if ( (s >= 0) && (t >= 0) && (s + t <= 1)) {
+                /* inside triangle */
+                var pixOff = ((y * width) + x) * 4
+                if (!pixels[pixOff+0] && !pixels[pixOff+1] && !pixels[[pixOff+2]]) {
+                    // If pixel is black; make it transparent
+                    pixels[pixOff+3] = 0
+                }
             }
         }
-        xf += dx_far
-        if (y < y1)
-            xt += dx_upper
-        else
-            xt += dx_low
     }
 }
