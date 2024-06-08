@@ -1012,7 +1012,7 @@ export class CarnivoresPlugin extends Plugin {
                 ...face.uvs, // array of 3 x/y integer values
                 isTransparentPixel,
             )) {
-                face.flags |= 8 /* transparent */ | 4 /* opacity */
+                face.flags |= 1 /* doublesided */ | 4 /* opacity */
             }
         })
     }
