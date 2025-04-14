@@ -7,11 +7,12 @@ import { loadMAN } from '../formats/man.js'
 import { saveMAP } from '../formats/map.js'
 import { loadRST } from '../formats/rst.js'
 import { loadPKM } from '../formats/pkm.js'
+import { loadTGA } from '../formats/tga.js'
 import { saveRSC } from '../formats/rsc.js'
 
 import fs from 'fs'
 import path from 'path'
-import { exec } from 'child_process'
+import { exec, execSync } from 'child_process'
 
 import FileHound from 'filehound'
 import { PNG } from 'pngjs'
@@ -22,12 +23,11 @@ const RSC_DEFAULT_VOLUME = 64 // integer value for sound volume when not specifi
 // Get arguments (and defaults)
 const areaName = process.argv[2]
 const basePath = process.argv[3]
-const productName = process.argv[4] || 'DinHunter'
-const platform = process.argv[5] || 'Android'
+const productName = process.argv[4] || 'assets'
 
 async function loadTexture(baseName) {
     const files = await FileHound.create()
-        .paths(path.join(basePath, `${productName}_${platform}`))
+        .paths(path.join(basePath, `${productName}/textures`))
         .match(`${baseName}.*`)
         .find()
 
@@ -41,6 +41,8 @@ async function loadTexture(baseName) {
     const tex = fs.readFileSync(files[0])
     const texType = path.extname(files[0])
     switch(texType.toLowerCase()) {
+        case '.tga':
+            return loadTGA(tex.buffer)
         case '.pkm':
             return loadPKM(tex.buffer)
         default:
@@ -85,7 +87,7 @@ function rgbaTo16Bits(r,g,b,a = 0) {
     let nR = (r >>> 3) & 0x1f
     let nG = (g >>> 3) & 0x1f
     let nB = (b >>> 3) & 0x1f
-    let nA = (a != 0) ? 0x8000 : 0
+    let nA = 0 //(a != 0) ? 0x8000 : 0 // writing alpha made terrain textures display wrong when zooming in with AE2
     return nA | (nR << 10) | (nG << 5) | nB
 }
 
@@ -94,6 +96,9 @@ function rgbaTo32Bits(r,g,b,a = 0xff) {
 }
 
 function generateWaterTable({ list }) {
+    if (!list) {
+        return [];
+    }
     return list.map(w => ({
         color: w.color ? rgbaTo32Bits(w.color[0], w.color[1], w.color[2]) : 0xffffff,
         textureIndex: w.tile_index,
@@ -103,6 +108,9 @@ function generateWaterTable({ list }) {
 }
 
 function generateFogTable({ list }) {
+    if (!list) {
+        return [];
+    }
     return list.map(f => ({
         color: rgbaTo32Bits(f.color[0], f.color[1], f.color[2]),
         yBegin: f.altitude,
@@ -159,7 +167,7 @@ async function generateTerrainTextureData(tileTexBaseName, tilesPerRow, tilesPer
         tilesPng.data[i] = tiles.data[i]
     }
     fs.writeFileSync(`${tileTexBaseName}.png`, PNG.sync.write(tilesPng))
-    exec(`convert -colors 65536 -resize ${tiles.width * 2} ${tileTexBaseName}.png ${tileTexBaseName}2x.png`)
+    execSync(`convert -colors 65536 -resize ${tiles.width * 2} ${tileTexBaseName}.png ${tileTexBaseName}2x.png`)
     const scaledTilesPng = PNG.sync.read(fs.readFileSync(`${tileTexBaseName}2x.png`))
     // Now convert the loaded PNG to 16-bit texture list, as expected by the RSC format
 
@@ -190,7 +198,6 @@ async function generateTerrainTextureData(tileTexBaseName, tilesPerRow, tilesPer
 }
 
 function generatePRJ(rsc) {
-    const texCount = rsc.textureCount
     let prj = 'Version=6\n'
 
     // Generate texture list
@@ -231,7 +238,32 @@ function generatePRJ(rsc) {
     return prj
 }
 
+function fixupMan() {
+    // We need to rewrite flags2/textureMap2 as they are 512x512 instead of 1024x1024 on mobile
+    const tm2 = new Uint8ClampedArray(1024 * 1024);
+    const f2 = new Uint8ClampedArray(1024 * 1024);
+    for (let y = 0; y < 512; y++) {
+        for (let x = 0; x < 512; x++) {
+            const inOff = y * 512 + x;
+            const outOff = (y*2) * 1024 + (x*2);
+            const flags = man.flags2[inOff] & 0xff;
+            const tex = man.tex2Map[inOff] & 0xff;
+            f2[outOff] = flags;
+            f2[outOff+1] = flags;
+            f2[outOff+1024] = flags;
+            f2[outOff+1024+1] = flags;
+            tm2[outOff] = tex;
+            tm2[outOff+1] = tex;
+            tm2[outOff+1024] = tex;
+            tm2[outOff+1024+1] = tex;
+        }
+    }
+    man.flags2 = f2;
+    man.tex2Map = tm2;
+}
+
 // TODO: add "birthplaces" to object map
+fixupMan();
 fs.writeFileSync(`${areaName}.rsc`, new Uint8ClampedArray(saveRSC(rsc)))
 fs.writeFileSync(`${areaName}.map`, new Uint8ClampedArray(saveMAP(man)))
 fs.writeFileSync(`${areaName}.prj`, generatePRJ(rsc), 'utf8')

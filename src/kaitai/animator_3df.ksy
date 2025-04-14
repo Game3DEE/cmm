@@ -1,57 +1,68 @@
 meta:
-  id: animator_3df
-  file-extension: animator_3df
+  id: atmosfear_3df
+  title: ActionForms Animator model format
+  file-extension: 3df
   endian: le
   encoding: utf8
+  license: CC0
+
+doc: |
+  This version of 3DF is written out by the ActionForms Animator program
+  and used directly in the unreleased game Duke Nukem: Endangered Species.
+  Version 4 is used in the last released binary of Animator 7, but the
+  publicly available source for Animator only saves Version 6 of the format.
+  A single V6 file is found in the ActionForms game called Vivisector.
 
 seq:
   - id: magic
     contents: "Kiev"
   - id: version
     type: u4
+    valid:
+      any-of: [4, 6]
   - id: skipped
     size: 120
-  - id: texture_count
+  - id: num_textures
     type: u4
   - id: textures
     type: strz
     size: 16
     repeat: expr
-    repeat-expr: texture_count
-  - id: lod_count
+    repeat-expr: num_textures
+  - id: num_lods
     type: u4
   - id: lods
     type: lod
     repeat: expr
-    repeat-expr: lod_count
+    repeat-expr: num_lods
     
 types:
   lod:
     seq:
-      - id: vertex_count
+      - id: num_vertices
         type: u4
-      - id: face_count
+      - id: num_faces
         type: u4
-      - id: bone_count
+      - id: num_bones
         type: u4
       - id: vertices
         type: vertex
         repeat: expr
-        repeat-expr: vertex_count
+        repeat-expr: num_vertices
       - id: faces
         type: face
         repeat: expr
-        repeat-expr: face_count
+        repeat-expr: num_faces
       - id: bones
         type: bone
         repeat: expr
-        repeat-expr: bone_count
+        repeat-expr: num_bones
       - id: texture_id_per_face
-        size: face_count
+        size: num_faces
       - id: face_by_texture_counts
         type: u4
         repeat: expr
-        repeat-expr: _root.texture_count
+        repeat-expr: _root.num_textures
   
   vertex:
     seq:
@@ -75,7 +86,14 @@ types:
       - id: c
         type: u2
       - id: flags
-        type: u2
+        type:
+          switch-on: _root.version
+          cases:
+            4: u2
+            6: u4
+      - type: u2
+        if: _root.version == 6
+        doc: 4-byte alignment for next float fields
       - id: tax
         type: f4
       - id: tbx

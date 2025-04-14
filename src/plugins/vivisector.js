@@ -2,6 +2,7 @@ import { DataType, Plugin } from './plugin.js'
 
 import CMF from '../kaitai/vivisector_cmf.js'
 import TRK from '../kaitai/vivisector_trk.js'
+import EXP from '../kaitai/atmosfear_exp.js'
 
 import { KaitaiStream } from 'kaitai-struct'
 
@@ -9,6 +10,7 @@ import {
     AnimationClip,
     Bone,
     BufferGeometry,
+    DoubleSide,
     Euler,
     Float32BufferAttribute,
     Mesh,
@@ -28,6 +30,7 @@ export class VivisectorPlugin extends Plugin {
             case 'csf': return [ { type: DataType.Model, model: this.loadModel(await this.loadFromURL(url), baseName, false) }]
             case 'cmf': return [ { type: DataType.Model, model: this.loadModel(await this.loadFromURL(url), baseName, true) }]
             case 'trk': return [ { type: DataType.Animation, animation: this.loadAnimation(await this.loadFromURL(url), baseName) }]
+            case 'exp': return [ { type: DataType.Model, model: this.loadExp(await this.loadFromURL(url), baseName) }]
         }
     }
 
@@ -80,6 +83,40 @@ export class VivisectorPlugin extends Plugin {
         })
 
         return new AnimationClip(baseName, -1, keyFrameTracks)
+    }
+
+
+    loadExp(buffer, baseName) {
+        const parsed = new EXP(new KaitaiStream(buffer))
+        console.log(parsed)
+
+        const vertices = [];
+        for (let m of parsed.models) {
+
+            m.faces.forEach(f => {
+                const a = m.vertices[f.indices[0]]
+                const b = m.vertices[f.indices[1]]
+                const c = m.vertices[f.indices[2]]
+                const d = m.vertices[f.indices[3]]
+                vertices.push(
+                    c.x, c.y, c.z,
+                    b.x, b.y, b.z,
+                    a.x, a.y, a.z,
+
+                    a.x, a.y, a.z,
+                    d.x, d.y, d.z,
+                    c.x, c.y, c.z,
+                )
+            })
+        }
+
+        const geo = new BufferGeometry()
+        geo.setAttribute('position', new Float32BufferAttribute(vertices, 3))
+        geo.computeVertexNormals()
+        const mesh = new Mesh(geo, new MeshNormalMaterial({ side: DoubleSide }));
+        mesh.name = baseName
+
+        return mesh;
     }
 
     loadModel(buffer, baseName, isCMF) {
@@ -279,7 +316,7 @@ export class VivisectorPlugin extends Plugin {
     }
 
     supportedExtensions() {
-        return [ 'cmf', 'csf', 'trk' ]
+        return [ 'cmf', 'csf', 'trk', 'exp' ]
     }
 
     isMode() {

@@ -240,7 +240,7 @@ var TexturesBlock = VivisectorCmf.TexturesBlock = (function() {
     this.textures = [];
     var i = 0;
     while (!this._io.isEof()) {
-        this.textures.push(KaitaiStream.bytesToStr(KaitaiStream.bytesTerminate(this._io.readBytes(128), 0, false), "utf8"));
+        this.textures.push(KaitaiStream.bytesToStr(KaitaiStream.bytesTerminate(this._io.readBytes(64), 0, false), "utf8"));
         i++;
     }
     }
@@ -298,6 +298,10 @@ var Block = VivisectorCmf.Block = (function() {
     this.id = this._io.readU4le();
     this.size = this._io.readU4le();
     switch (this.id) {
+    case 0x1002:
+        //this.size -= 4;
+        this.data = this._io.readBytes(this.size);
+        break;
     case VivisectorCmf.BlockId.UV1:
         this._raw_data = this._io.readBytes(this.size);
         var _io__raw_data = new KaitaiStream(this._raw_data);
