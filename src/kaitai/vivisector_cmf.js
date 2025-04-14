@@ -1,9 +1,14 @@
 // NOTE: This file was manually tweaked for ES6 compatibility
 import { KaitaiStream }  from "kaitai-struct"
 
+// This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
+
+// This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
+
 VivisectorCmf.BlockId = Object.freeze({
     TEXTURE_COUNT: 2,
     TEXTURES: 3,
+    WRONG_SIZED_BLOCK: 4098,
     FACE_COUNT: 8209,
     VERT_COUNT: 8210,
     FACES: 8211,
@@ -34,6 +39,7 @@ VivisectorCmf.BlockId = Object.freeze({
 
     2: "TEXTURE_COUNT",
     3: "TEXTURES",
+    4098: "WRONG_SIZED_BLOCK",
     8209: "FACE_COUNT",
     8210: "VERT_COUNT",
     8211: "FACES",
@@ -245,6 +251,10 @@ var TexturesBlock = VivisectorCmf.TexturesBlock = (function() {
     }
     }
 
+    /**
+     * This is actually wrong, as CSF files have 64 bytes per texture name, but CMF files have 128 bytes per texture name!
+     */
+
     return TexturesBlock;
 })();
 
@@ -298,12 +308,8 @@ var Block = VivisectorCmf.Block = (function() {
     this.id = this._io.readU4le();
     this.size = this._io.readU4le();
     switch (this.id) {
-    case 0x1002:
-        //this.size -= 4;
-        this.data = this._io.readBytes(this.size);
-        break;
     case VivisectorCmf.BlockId.UV1:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new UvBlock(_io__raw_data, this, this._root);
         break;
@@ -317,17 +323,17 @@ var Block = VivisectorCmf.Block = (function() {
         this.data = this._io.readU4le();
         break;
     case VivisectorCmf.BlockId.BONE_NAMES:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new BoneNamesBlock(_io__raw_data, this, this._root);
         break;
     case VivisectorCmf.BlockId.ALT_FACES:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new FacesBlock(_io__raw_data, this, this._root);
         break;
     case VivisectorCmf.BlockId.VERTEX_BONES:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new VertexBonesBlock(_io__raw_data, this, this._root);
         break;
@@ -335,17 +341,17 @@ var Block = VivisectorCmf.Block = (function() {
         this.data = this._io.readU4le();
         break;
     case VivisectorCmf.BlockId.SOMETHING_UNKN_ATTR3_V3F:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new SomethingUnknAttr3V3fBlock(_io__raw_data, this, this._root);
         break;
     case VivisectorCmf.BlockId.BONE_POSITIONS:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new BonePositionsBlock(_io__raw_data, this, this._root);
         break;
     case VivisectorCmf.BlockId.TEXTURES:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new TexturesBlock(_io__raw_data, this, this._root);
         break;
@@ -353,42 +359,42 @@ var Block = VivisectorCmf.Block = (function() {
         this.data = this._io.readU4le();
         break;
     case VivisectorCmf.BlockId.FACE_MATERIALS:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new FaceMaterialsBlock(_io__raw_data, this, this._root);
         break;
     case VivisectorCmf.BlockId.HEADER:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new HeaderBlock(_io__raw_data, this, this._root);
         break;
     case VivisectorCmf.BlockId.UV2:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new UvBlock(_io__raw_data, this, this._root);
         break;
     case VivisectorCmf.BlockId.BONE_TRANSFORMS:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new BoneTransformsBlock(_io__raw_data, this, this._root);
         break;
     case VivisectorCmf.BlockId.FACES:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new FacesBlock(_io__raw_data, this, this._root);
         break;
     case VivisectorCmf.BlockId.BONE_PARENTS:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new BoneParentsBlock(_io__raw_data, this, this._root);
         break;
     case VivisectorCmf.BlockId.VERTICES:
-        this._raw_data = this._io.readBytes(this.size);
+        this._raw_data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         var _io__raw_data = new KaitaiStream(this._raw_data);
         this.data = new VertBlock(_io__raw_data, this, this._root);
         break;
     default:
-        this.data = this._io.readBytes(this.size);
+        this.data = this._io.readBytes((this.id == VivisectorCmf.BlockId.WRONG_SIZED_BLOCK ? (this.size - 4) : this.size));
         break;
     }
     }
@@ -425,9 +431,9 @@ var Matrix3x3f = VivisectorCmf.Matrix3x3f = (function() {
     this._read();
     }
     Matrix3x3f.prototype._read = function() {
-    this.elements = new Array(9);
+    this.elements = [];
     for (var i = 0; i < 9; i++) {
-        this.elements[i] = this._io.readF4le();
+        this.elements.push(this._io.readF4le());
     }
     }
 

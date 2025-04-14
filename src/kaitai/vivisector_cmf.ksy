@@ -22,7 +22,7 @@ types:
       - id: size
         type: u4
       - id: data
-        size: size
+        size: "id == block_id::wrong_sized_block ? size - 4 : size"
         type:
           switch-on: id
           cases:
@@ -88,7 +88,8 @@ types:
     seq:
       - id: textures
         type: strz
-        size: 128
+        size: 64
+        doc: This is actually wrong, as CSF files have 64 bytes per texture name, but CMF files have 128 bytes per texture name!
         repeat: eos
 
   vert_block:
@@ -192,6 +193,7 @@ enums:
     0x0002: texture_count
     0x0003: textures
     0xf001: header
+    0x1002: wrong_sized_block
     0x2011: face_count
     0x2012: vert_count
     0xf010: bone_count
