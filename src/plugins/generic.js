@@ -6,6 +6,7 @@ import {
 
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js'
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 
 import { DataType, Plugin } from './plugin.js'
 import { downloadBlob } from '../utils.js'
@@ -28,6 +29,13 @@ export class GenericPlugin extends Plugin {
                 downloadBlob(exp.parse(model), `${model.name}.obj`)
             }
         }, 'export').name('Export To OBJ')
+        this.customGui.add({
+            exportGlb: async () => {
+                const exp = new GLTFExporter()
+                const glb = await exp.parseAsync(model, { binary: true });
+                downloadBlob(glb, `${model.name}.glb`)
+            }
+        }, 'exportGlb').name('Export To GLB')
     }
 
     async loadFile(url, ext, baseName) {
