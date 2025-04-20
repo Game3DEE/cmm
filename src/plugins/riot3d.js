@@ -168,6 +168,7 @@ export class Riot3DPlugin extends Plugin {
                     break
                 case 'Verts':
                     let vCount = parseInt(lines[idx].split('=')[1].trim())
+                    // vx vy vz nx ny nz tx ty tz tws r g b
                     for (let i = 1; i <= vCount; i++) {
                         vertices.push(lines[idx+i].split(/[ \t]+/).map(s => s.trim()).map(s => parseFloat(s)))
                     }
@@ -175,6 +176,7 @@ export class Riot3DPlugin extends Plugin {
                     break
                 case 'Faces':
                     let fCount = parseInt(lines[idx].split('=')[1].trim())
+                    // 3 idx0 idx1 idx2 material u0 v0 u1 v1 u2 v2
                     for (let i = 1; i <= fCount; i++) {
                         const parts = lines[idx+i].split(/[ \t]+/).map(s => s.trim())
                         const cnt = parseInt(parts[0])
@@ -216,6 +218,38 @@ export class Riot3DPlugin extends Plugin {
         ]
     }
 
+
+    // Material file:
+    // [MaterialBegin]
+    // Name=<name>
+    // Flags=str (unused currently)
+    // SpecularPower=<float>
+    // DetailScale=<float>
+    // DetailAmount=<float>
+    // Specular1Power=<float>
+    // displace=<0|1>
+    // displ_val=<float> (DisplDepthVal)
+    // ReflectionPower=<float>
+    // AlphaTransparent=<0|1>
+    // Camouflage=<0|1>
+    // DoubleSided=<0|1>
+    // Color24=<r8> <g8> <b8>
+    // Type=<str>
+    // lowQSelfUllum=<float>
+    // lowQMetallness=<float>
+    // (TransparentShadows|ForceTransparent)=<0|1>
+    // Texture=<path>
+    // NormalMap=<path>
+    // EnvMap=<path>
+    // SpecularMap=<path>
+    // GlowMap=<path>
+    // DetailNMap=<path>
+    // DensityMap=<path>
+    // CamoMask=<path>
+    // ImagesDir=<path>
+    // DistortionMap=<path>
+    // SpecPowMap=<path>
+    // SelfIllumMultiplier=<path>
     supportedExtensions() {
         return [ 'sco', 'scb', 'dat', 'anim', /* non riot3d */ 'p3d', ]
     }
