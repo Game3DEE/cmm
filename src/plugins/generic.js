@@ -32,7 +32,10 @@ export class GenericPlugin extends Plugin {
         this.customGui.add({
             exportGlb: async () => {
                 const exp = new GLTFExporter()
-                const glb = await exp.parseAsync(model, { binary: true });
+                const userData = model.userData;
+                model.userData = {};
+                const glb = await exp.parseAsync(model, { binary: true, animations: model.animations });
+                model.userData = userData;
                 downloadBlob(glb, `${model.name}.glb`)
             }
         }, 'exportGlb').name('Export To GLB')
