@@ -178,10 +178,11 @@ async function generateTerrainTextureData(tileTexBaseName, tilesPerRow, tilesPer
     const tileSize = 128
     for (let ty = 0; ty < tilesPerRow; ty++) {
         for (let tx = 0; tx < tilesPerCol; tx++) {
-            let tileInOff = (ty * scaledTilesPng.width + tx) * tileSize * 4
             for (let y = 0; y < tileSize; y++) {
-                let inOff = tileInOff + y * (scaledTilesPng.width * 4)
                 for (let x = 0; x < tileSize; x++) {
+                    let inOff = (ty * tileSize + x) * scaledTilesPng.width;
+                    inOff += tx * tileSize + y;
+                    inOff *= 4;
                     textureData[outOff++] = rgbaTo16Bits(
                         scaledTilesPng.data[inOff + 0],
                         scaledTilesPng.data[inOff + 1],

@@ -770,6 +770,8 @@ export class CarnivoresPlugin extends Plugin {
         const position = []
         const uv = []
     
+        console.log(model)
+
         const totalFrames = animations?.reduce((a,b) => a + b.frameCount, 0)
 
         if (totalFrames) {
@@ -782,9 +784,12 @@ export class CarnivoresPlugin extends Plugin {
         const skinWeights = []
 
         const mapping = []
-        model.faces.forEach(f => {
+        model.faces.forEach((f,fIdx) => {
             for (let i = 0; i < 3; i++) {
                 const vIdx = f.indices[i]
+                if (vIdx >= model.vertices.length) {
+                    console.log(`Invalid vertex index ${vIdx} in face ${fIdx}`)
+                }
                 const v = model.vertices[vIdx]
                 position.push(
                     v.position[0],

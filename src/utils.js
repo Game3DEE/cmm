@@ -1,11 +1,14 @@
 import {
   LinearFilter,
+  RepeatWrapping,
   Vector3,
 } from 'three'
 
 export function setLinearFilters(tex) {
   tex.minFilter = LinearFilter
   tex.magFilter = LinearFilter
+  tex.wrapS = RepeatWrapping
+  tex.wrapT = RepeatWrapping
   return tex
 }
 

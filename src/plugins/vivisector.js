@@ -91,6 +91,7 @@ export class VivisectorPlugin extends Plugin {
         console.log(parsed)
 
         const vertices = [];
+        const uvs = [];
         for (let m of parsed.models) {
 
             m.faces.forEach(f => {
@@ -98,6 +99,14 @@ export class VivisectorPlugin extends Plugin {
                 const b = m.vertices[f.indices[1]]
                 const c = m.vertices[f.indices[2]]
                 const d = m.vertices[f.indices[3]]
+                const u0 = f.uvs[0].x
+                const u1 = f.uvs[0].y
+                const u2 = f.uvs[1].x
+                const u3 = f.uvs[1].y
+                const v0 = f.uvs[2].x
+                const v1 = f.uvs[2].y
+                const v2 = f.uvs[3].x
+                const v3 = f.uvs[3].y
                 vertices.push(
                     c.x, c.y, c.z,
                     b.x, b.y, b.z,
@@ -107,11 +116,21 @@ export class VivisectorPlugin extends Plugin {
                     d.x, d.y, d.z,
                     c.x, c.y, c.z,
                 )
+                uvs.push(
+                    u2, v2,
+                    u1, v1,
+                    u0, v0,
+
+                    u0, v0,
+                    u3, v3,
+                    u2, v2,
+                )
             })
         }
 
         const geo = new BufferGeometry()
         geo.setAttribute('position', new Float32BufferAttribute(vertices, 3))
+        geo.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
         geo.computeVertexNormals()
         const mesh = new Mesh(geo, new MeshNormalMaterial({ side: DoubleSide }));
         mesh.name = baseName
