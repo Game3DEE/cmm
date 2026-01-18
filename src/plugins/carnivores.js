@@ -111,6 +111,17 @@ export class CarnivoresPlugin extends Plugin {
                     downloadBlob(buf, `${tex.name}.tga`)
                 }
             },
+            exportTGA24: () => {
+                const tex = this.activeModel?.material?.map
+                if (tex) {
+                    const buf = saveTGA({
+                        width: tex.image.width,
+                        height: tex.image.height,
+                        data: this.createTextureRGB()
+                    }, 24)
+                    downloadBlob(buf, `${tex.name}.tga`)
+                }
+            },
             exportTGA16: () => {
                 const tex = this.activeModel?.material?.map
                 if (tex) {
@@ -472,6 +483,7 @@ export class CarnivoresPlugin extends Plugin {
             this.customGui.add(this.guiOps, 'export3DN').name('Export 3DN')
             this.customGui.add(this.guiOps, 'exportCAR').name('Export CAR')
             this.customGui.add(this.guiOps, 'exportTGA32').name('Export 32-bit TGA')
+            this.customGui.add(this.guiOps, 'exportTGA24').name('Export 24-bit TGA')
             this.customGui.add(this.guiOps, 'exportTGA16').name('Export 16-bit TGA')
             this.customGui.add(this.guiOps, 'flagBasedOnAlpha').name('Flag opacity based on alpha')
             this.customGui.add(this.guiOps, 'flagBasedOnBlack').name('Flag opacity based on black pixels')
@@ -971,6 +983,25 @@ export class CarnivoresPlugin extends Plugin {
             texture[i] = a | (r << 10) | (g << 5) | b
         }
     
+        return texture
+    }
+
+
+    createTextureRGB() {
+        let tex = this.activeModel?.material?.map
+
+        // bail out if no current texture
+        if (!tex || !tex.image) return undefined
+
+        // Convert 32-bit RGBA texture to 24-bit RGB texture
+        const { width, height, data } = tex.image
+        const texture = new Uint8ClampedArray(width * height * 3)
+        for (let i = 0; i < width * height; i++) {
+            texture[i*3+0] = data[i*4 +0]
+            texture[i*3+1] = data[i*4 +1]
+            texture[i*3+2] = data[i*4 +2]
+        }
+
         return texture
     }
 

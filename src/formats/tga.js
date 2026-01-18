@@ -111,6 +111,11 @@ export function saveTGA(image, bits = 32) {
                     dv.setUint8(dstOff + 0, byteView[srcOff +0])
                     dv.setUint8(dstOff + 1, byteView[srcOff +1])
                     break;
+                case 24:
+                    dv.setUint8(dstOff + 2, byteView[srcOff +0])
+                    dv.setUint8(dstOff + 1, byteView[srcOff +1])
+                    dv.setUint8(dstOff + 0, byteView[srcOff +2])
+                    break
                 case 32:
                     dv.setUint8(dstOff + 2, byteView[srcOff +0])
                     dv.setUint8(dstOff + 1, byteView[srcOff +1])
