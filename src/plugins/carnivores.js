@@ -104,6 +104,22 @@ export class CarnivoresPlugin extends Plugin {
                 const out = saveCAR({  ...model, animations, texture: this.createTexture565(), })
                 downloadBlob(out, `${this.activeModel.name}.car`)
             },
+            flipTextureV: () => {
+                const tex = this.activeModel?.material?.map
+                if (tex) {
+                    const { width, height, data } = tex.image;
+                    const rowSize = width * 4;
+                    const temp = new Uint8ClampedArray(rowSize);
+                    for (let y = 0; y < Math.floor(height / 2); y++) {
+                        const topIndex = y * rowSize;
+                        const bottomIndex = (height - 1 - y) * rowSize; // swap rows
+                        temp.set(data.subarray(topIndex, topIndex + rowSize));
+                        data.copyWithin(topIndex, bottomIndex, bottomIndex + rowSize);
+                        data.set(temp, bottomIndex);
+                    }
+                    tex.needsUpdate = true
+                }
+            },
             exportTGA32: () => {
                 const tex = this.activeModel?.material?.map
                 if (tex) {
@@ -485,6 +501,7 @@ export class CarnivoresPlugin extends Plugin {
             this.customGui.add(this.guiOps, 'exportTGA32').name('Export 32-bit TGA')
             this.customGui.add(this.guiOps, 'exportTGA24').name('Export 24-bit TGA')
             this.customGui.add(this.guiOps, 'exportTGA16').name('Export 16-bit TGA')
+            this.customGui.add(this.guiOps, 'flipTextureV').name('Flip Texture (V)')
             this.customGui.add(this.guiOps, 'flagBasedOnAlpha').name('Flag opacity based on alpha')
             this.customGui.add(this.guiOps, 'flagBasedOnBlack').name('Flag opacity based on black pixels')
             this.customGui.add(this.guiOps, 'flagEdit').name('Edit Flags').onChange(editFlagsChanged)
